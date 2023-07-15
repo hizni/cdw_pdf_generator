@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "pdf-generator"
+version = "0.1.0"
+description = "pdf generator for datasets in OXPOS data product"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "pdf_generator"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.0.3"
+pymssql = "^2.2.7"
+Jinja2 = "^3.1.2"
+pdfkit = "^1.0.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
