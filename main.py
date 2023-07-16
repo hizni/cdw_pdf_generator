@@ -2,6 +2,7 @@ import pymssql
 import pandas as pd
 import jinja2
 import pdfkit
+from tqdm import tqdm
 
 # generate pdf
 def create_pdf(template_vars, templates_dir, template_file):
@@ -23,6 +24,7 @@ def save_pdf(file_content, path, filename):
         config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
 
         output_pdf_path_and_file = path + filename + '.pdf'
+        
         pdfkit.from_string(file_content, output_pdf_path_and_file, configuration=config)
 
     except Exception as error:
@@ -56,12 +58,12 @@ if __name__ == '__main__':
     # create dataframe
     df = pd.DataFrame(rows, columns=columns)
    
-    count = 0
-    # iterate over dataframe rows presented as a dictionary
-    for row in df.to_dict('records'):
+    # # iterate over dataframe rows presented as a dictionary
+    # added TQDM progress bar
+    for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
         
         pdf_file = create_pdf(row, template_dir, template_file)
         filename = row['DiagnosticReportIdentifier']
-        print(f"creating PDF: {filename}.pdf")
+
         save_pdf(pdf_file, generated_pdf_dir, filename)
-        count=count+1
+        # count=count+1
