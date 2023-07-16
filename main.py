@@ -12,17 +12,6 @@ def create_pdf(template_vars, templates_dir, template_file):
     #template vars are passed as a dictionary from a row in the retrieved record set
     html_out = template.render(template_vars)
 
-    # env = jinja2.Environment(loader=jinja2.FileSystemLoader('./templates/'))
-    # template = env.get_template('name.txt')
-    # html_out = template.render(name='hizni')
-
-    # file_content = pdfkit.from_string(
-    #     html_out,
-    #     False,
-    #     options='here_a_dict_with_special_page_properties',
-    #     css='here_your_css_file_path' # its a list e.g ['my_css.css', 'my_other_css.css']
-    # )
-    # print(html_out)
     return html_out
 
 
@@ -33,7 +22,7 @@ def save_pdf(file_content, path, filename):
 
         config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
 
-        output_pdf_path_and_file = path + '/' + filename + '.pdf'
+        output_pdf_path_and_file = path + filename + '.pdf'
         pdfkit.from_string(file_content, output_pdf_path_and_file, configuration=config)
 
     except Exception as error:
@@ -45,23 +34,34 @@ def save_pdf(file_content, path, filename):
 if __name__ == '__main__':
 
     # get data from data source
-    conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database='data_products__oxpos_cohort_3')  
-    cursor = conn.cursor()  
-    cursor.execute('SELECT * FROM [oxpos_cohort_3].[oxpos_diagnostic_mdt_report]')
 
+    database_name = 'data_products__oxpos_cohort_3'
+    schema_table_name = '[oxpos_cohort_3].[oxpos_diagnostic_mdt_report]'
     template_dir = './templates/'
     template_file = 'mdt-report-template.html'
-    names = [ x[0] for x in cursor.description]
-    rows = cursor.fetchall()
-    df = pd.DataFrame(rows, columns=names)
-   
-    recs = df.to_dict('records')
 
+    generated_pdf_dir = './generated_pdf/mdt_report/'
+
+    # Create database connection string - using SQL authentication
+    conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
+
+    cursor = conn.cursor()  
+    cursor.execute('SELECT * FROM ' + schema_table_name)
+
+    # get columns returned
+    columns = [ x[0] for x in cursor.description]
+    # get rows returned
+    rows = cursor.fetchall()
+
+    # create dataframe
+    df = pd.DataFrame(rows, columns=columns)
+   
     count = 0
+    # iterate over dataframe rows presented as a dictionary
     for row in df.to_dict('records'):
         
         pdf_file = create_pdf(row, template_dir, template_file)
         filename = row['DiagnosticReportIdentifier']
         print(f"creating PDF: {filename}.pdf")
-        save_pdf(pdf_file, './generated_pdf', filename)
+        save_pdf(pdf_file, generated_pdf_dir, filename)
         count=count+1
