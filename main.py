@@ -66,4 +66,4 @@ if __name__ == '__main__':
         filename = row['DiagnosticReportIdentifier']
 
         save_pdf(pdf_file, generated_pdf_dir, filename)
-        # count=count+1
+        
