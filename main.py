@@ -3,6 +3,7 @@ import pandas as pd
 import jinja2
 import pdfkit
 from tqdm import tqdm
+import argparse
 
 # generate pdf
 def create_pdf(template_vars, templates_dir, template_file):
@@ -32,6 +33,18 @@ def save_pdf(file_content, path, filename):
         print(f'Error saving file to disc. Error: {error}')
         raise error
         
+def get_data_from_database(db_connection, schema_table_name)
+    cursor = conn.cursor()  
+    cursor.execute('SELECT * FROM ' + schema_table_name)
+
+    # get columns returned
+    columns = [ x[0] for x in cursor.description]
+    # get rows returned
+    rows = cursor.fetchall()
+
+    # create dataframe
+    return pd.DataFrame(rows, columns=columns)
+
         
 if __name__ == '__main__':
 
@@ -47,20 +60,12 @@ if __name__ == '__main__':
     # Create database connection string - using SQL authentication
     conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
 
-    cursor = conn.cursor()  
-    cursor.execute('SELECT * FROM ' + schema_table_name)
-
-    # get columns returned
-    columns = [ x[0] for x in cursor.description]
-    # get rows returned
-    rows = cursor.fetchall()
-
     # create dataframe
-    df = pd.DataFrame(rows, columns=columns)
+    df = get_data_from_database(conn, schema_table_name)
    
     # # iterate over dataframe rows presented as a dictionary
     # added TQDM progress bar
-    
+
     for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
         
         pdf_file = create_pdf(row, template_dir, template_file)
