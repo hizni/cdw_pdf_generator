@@ -60,6 +60,7 @@ if __name__ == '__main__':
    
     # # iterate over dataframe rows presented as a dictionary
     # added TQDM progress bar
+    
     for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
         
         pdf_file = create_pdf(row, template_dir, template_file)
