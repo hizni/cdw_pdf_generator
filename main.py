@@ -33,7 +33,7 @@ def save_pdf(file_content, path, filename):
         print(f'Error saving file to disc. Error: {error}')
         raise error
         
-def get_data_from_database(db_connection, schema_table_name)
+def get_data_from_database(db_connection, schema_table_name):
     cursor = conn.cursor()  
     cursor.execute('SELECT * FROM ' + schema_table_name)
 
