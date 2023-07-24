@@ -74,7 +74,7 @@ if __name__ == '__main__':
     template_file = args.template_file
     generated_pdf_dir = args.generate_pdf_to
 
-
+    #check if template dir
     
     # Create database connection string - using SQL authentication
     conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
