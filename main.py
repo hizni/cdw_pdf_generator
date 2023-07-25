@@ -5,6 +5,8 @@ import pdfkit
 from tqdm import tqdm
 import argparse
 import errno, sys 
+import pathlib
+import base64
 
 # generate pdf
 def create_pdf(template_vars, templates_dir, template_file):
@@ -35,7 +37,7 @@ def save_pdf(file_content, path, filename):
         raise error
         
 def get_data_from_database(db_connection, schema_table_name):
-    cursor = conn.cursor()  
+    cursor = db_connection.cursor()  
     cursor.execute('SELECT * FROM ' + schema_table_name)
 
     # get columns returned
@@ -58,6 +60,7 @@ if __name__ == '__main__':
 
     # generated_pdf_dir = './generated_pdf/mdt_report/'
 
+    # parsing command line args
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", help="database that data will be extracted from",type=str, required=True)
     parser.add_argument("--schema", help="schema that data will be extracted from",type=str, required=True)
@@ -79,16 +82,75 @@ if __name__ == '__main__':
     # Create database connection string - using SQL authentication
     conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
 
-    # create dataframe
+    # create dataframe from data extracted from table
     df = get_data_from_database(conn, schema_table_name)
    
-    # # iterate over dataframe rows presented as a dictionary
-    # added TQDM progress bar
-
-    for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
+    
+    # # # iterate over dataframe rows presented as a dictionary
+    # # added TQDM progress bar
+    # for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
         
-        pdf_file = create_pdf(row, template_dir, template_file)
-        filename = row['DiagnosticReportIdentifier']
+    #     # create pdf file content
+    #     pdf_content = create_pdf(row, template_dir, template_file)
+    #     filename = row['DiagnosticReportIdentifier']
 
-        save_pdf(pdf_file, generated_pdf_dir, filename)
+    #     # encode pdf data to base64 string
+
+    #     # write file to disk
+    #     save_pdf(pdf_content, generated_pdf_dir, filename)
+
+    # data = {'diagnostic_report_identifier':[], 'pdf_data':[]}
+    # lst = []
+
+
+    
+    # for col in df.columns:
+    #     print(col)
+
+ 
+    for i, row in enumerate(df.to_dict('records')):
         
+        pdf_content = create_pdf(row, template_dir, template_file)
+
+        # row['AttachmentName'].replace(row['DiagnosticReportIdentifier'] + '.pdf')
+        # row['AttachmentContent'].replace(base64.b64encode(str.encode(pdf_content)))
+        # row['AttachmentType'].replace('application/pdf')
+
+        df.at[i,'AttachmentName'] = row['DiagnosticReportIdentifier'] + '.pdf'
+        df.at[i, 'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        df.at[i, 'AttachmentType'] = 'application/pdf'
+
+        # new_row = {'diagnostic_report_identifier': row['DiagnosticReportIdentifier'], 'pdf_data': base64.b64encode(str.encode(pdf_content))}
+        # lst.append(base64.b64encode(str.encode(pdf_content)))      
+
+
+    # df_extended = pd.DataFrame(lst, columns=['pdf_data'])
+    # out = pd.concat([df, df_extended])
+    # write dataframe to csv
+
+    # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
+    # any name changes have to be reflected in templates as well
+    # Old column name                   | New column name
+    #  DiagnosticReportIdentifier       | DiagnosticPrimaryIdentifier
+    #  DiagnosticReportIdentifierSystem | DiagnosticPrimaryIdentifierSystem
+    #  DiagnosticReportStatus           | PrimaryReportStatus
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                        'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                        'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       }
+              )
+
+    # print(df['AttachmentContent'])
+
+    filepath = pathlib.Path('./generated_csv/test3.csv')
+    df.to_csv(filepath, header=True, chunksize=5000 , columns=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                                                               ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
+                                                               'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
+                                                               'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem',
+                                                               'AttachmentName','AttachmentContent',
+                                                                'AttachmentContentMimeType',
+                                                               'ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem',
+                                                               'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode','ConclusionCodeSystem',
+                                                               'ConclusionCodeDisplay','ConclusionText'
+    ])
+
