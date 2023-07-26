@@ -7,9 +7,10 @@ import argparse
 import errno, sys 
 import pathlib
 import base64
+import numpy as np
 
-# generate pdf
-def create_pdf(template_vars, templates_dir, template_file):
+# generate pdf_content
+def create_pdf_content(template_vars, templates_dir, template_file):
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_dir))
     template = env.get_template(template_file)
@@ -47,6 +48,8 @@ def get_data_from_database(db_connection, schema_table_name):
 
     # create dataframe
     return pd.DataFrame(rows, columns=columns)
+
+
 
         
 if __name__ == '__main__':
@@ -110,7 +113,7 @@ if __name__ == '__main__':
  
     for i, row in enumerate(df.to_dict('records')):
         
-        pdf_content = create_pdf(row, template_dir, template_file)
+        pdf_content = create_pdf_content(row, template_dir, template_file)
 
         # row['AttachmentName'].replace(row['DiagnosticReportIdentifier'] + '.pdf')
         # row['AttachmentContent'].replace(base64.b64encode(str.encode(pdf_content)))
@@ -135,15 +138,25 @@ if __name__ == '__main__':
     #  DiagnosticReportIdentifierSystem | DiagnosticPrimaryIdentifierSystem
     #  DiagnosticReportStatus           | PrimaryReportStatus
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                        'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                        'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       }
-              )
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
 
     # print(df['AttachmentContent'])
 
     filepath = pathlib.Path('./generated_csv/test3.csv')
-    df.to_csv(filepath, header=True, chunksize=5000 , columns=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    # df.to_csv(filepath, header=True, chunksize=5000 , columns=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                                                            ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
+    #                                                            'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
+    #                                                            'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem',
+    #                                                            'AttachmentName','AttachmentContent',
+    #                                                             'AttachmentContentMimeType',
+    #                                                            'ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem',
+    #                                                            'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode','ConclusionCodeSystem',
+    #                                                            'ConclusionCodeDisplay','ConclusionText'
+    # ])
+
+    columns_list=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                                                                ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
                                                                'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
                                                                'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem',
@@ -152,5 +165,51 @@ if __name__ == '__main__':
                                                                'ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem',
                                                                'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode','ConclusionCodeSystem',
                                                                'ConclusionCodeDisplay','ConclusionText'
-    ])
+    ]
 
+    print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
+    b = sys.getsizeof(df)
+    kb = b / 1000
+    KB = kb * 0.976562
+    print("dataframe size of(bytes): " + str(b))
+    print("dataframe size of(kb): " + str(kb))
+    print("dataframe size of(KB): " + str(KB))
+    #convert kilobyte to kibibyte
+    df.info(memory_usage='deep')
+
+
+    # df_subset = df[columns_list]
+    # b = sys.getsizeof(df_subset)
+    # kb = b / 1000
+    # KB = kb * 0.976562
+    # print("subset dataframe size of(bytes): " + str(b))
+    # print("subset dataframe size of(kb): " + str(kb))
+    # print("subset dataframe size of(KB): " + str(KB))
+    # #convert kilobyte to kibibyte
+    # df_subset.info(memory_usage='deep')
+
+    
+    df_huge = pd.DataFrame(np.random.randint(0, 100, size=(10000000, 50)))
+    df_huge = df_huge.rename(columns={i:f"x_{i}" for i in range(50)})
+    df_huge["category"] = ["A", "B", "C", "D"] * 2500000
+
+    b = sys.getsizeof(df_huge)
+    kb = b / 1000
+    KB = kb * 0.976562
+    print("df_huge dataframe size of(bytes): " + str(b))
+    print("df_huge dataframe size of(kb): " + str(kb))
+    print("df_huge dataframe size of(KB): " + str(KB))
+    #convert kilobyte to kibibyte
+    df_huge.info(memory_usage='deep')
+
+    print("df_huge rows count: " + str(len(df_huge)))
+
+def save_csv(dataframe, max_file_size_mb):
+    df_size_in_bytes = sys.getsizeof(dataframe)
+    df_size_in_mb = df_size_in_bytes / (10^6)
+
+    df_row_count = len(dataframe)
+
+    iteration = round(df_size_in_mb / max_file_size_mb)
+    print("iterations: "+ iteration)
+    print("rows per iteration: " + df_row_count / iteration)   
