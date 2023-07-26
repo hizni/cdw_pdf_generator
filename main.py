@@ -204,7 +204,7 @@ if __name__ == '__main__':
 
     print("df_huge rows count: " + str(len(df_huge)))
 
-def save_csv(dataframe, max_file_size_mb):
+def save_csv(dataframe, max_file_size_mb, target_dir, filename):
     df_size_in_bytes = sys.getsizeof(dataframe)
     df_size_in_mb = df_size_in_bytes / (10^6)
 
@@ -212,4 +212,10 @@ def save_csv(dataframe, max_file_size_mb):
 
     iteration = round(df_size_in_mb / max_file_size_mb)
     print("iterations: "+ iteration)
-    print("rows per iteration: " + df_row_count / iteration)   
+    number_of_chunks = df_row_count / iteration
+    print("rows per iteration: " + number_of_chunks)   
+
+    # for idx, chunk in enumerate(np.array_split(df, number_of_chunks)):
+    #     chunk.to_csv(f'{target_dir}/{filename}_{idx}.csv')
+
+    
