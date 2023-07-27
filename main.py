@@ -8,6 +8,10 @@ import errno, sys
 import pathlib
 import base64
 import numpy as np
+from datetime import datetime 
+import os 
+import math
+
 
 # generate pdf_content
 def create_pdf_content(template_vars, templates_dir, template_file):
@@ -21,14 +25,14 @@ def create_pdf_content(template_vars, templates_dir, template_file):
     return html_out
 
 
-def save_pdf(file_content, path, filename):
+def save_pdf(file_content, target_dir, filename):
     try:
         # with open('your_pdf_file_here.pdf', 'wb+') as file:
         #     file.write(file_content)
 
         config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
 
-        output_pdf_path_and_file = path + filename + '.pdf'
+        output_pdf_path_and_file = target_dir + filename + '.pdf'
         
         pdfkit.from_string(file_content, output_pdf_path_and_file, configuration=config)
 
@@ -49,8 +53,72 @@ def get_data_from_database(db_connection, schema_table_name):
     # create dataframe
     return pd.DataFrame(rows, columns=columns)
 
+def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None, max_file_size_mb = None, delimiter = ","):
+    
+    # filepath = pathlib.Path(target_dir + filename)
+    now = datetime.now() # current date and time
+    current_datestamp = now.strftime("%Y%m%d")
+    print(current_datestamp)
 
+    # Check whether the specified path exists or not
+    isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+    if not isExist:
+        os.makedirs(f'{target_dir}/{current_datestamp}')
 
+    # output_df = dataframe
+
+    if (columns_list != None):
+        output_df = dataframe[columns_list]
+    else:
+        output_df = dataframe
+
+    # getting info to help make decisions
+    df_size_in_bytes = sys.getsizeof(output_df)
+    df_size_in_mb = (df_size_in_bytes / 1000000)
+
+    # if file size is not an issue, just output to csv
+    if(max_file_size_mb == None):
+        output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+
+        
+    else:
+        df_row_count = len(output_df)
+
+        # print("dataframe_size_in_b calc: " + str(df_size_in_bytes))
+        # print("dataframe_size_in_mb calc: " + str(df_size_in_mb))
+
+        iteration = math.ceil(df_size_in_mb / max_file_size_mb)
+        number_of_chunks = int(df_row_count / iteration)
+
+        # print("max_file_size: " + str(max_file_size_mb))
+        # print("rows in dataframe: " + str(df_row_count))
+        # print("iterations: "+ str(iteration))
+        # print("rows per iteration: " + str(number_of_chunks))
+
+        # for idx, chunk in enumerate(np.array_split(output_df, number_of_chunks)):
+        #     chunk.to_csv(f'{target_dir}{filename}_{idx}.csv')
+
+        for i, start in enumerate(range(0, df_row_count, number_of_chunks)):
+            output_df[start:start+number_of_chunks].to_csv(f'{target_dir}/{filename}_{i}.csv', chunksize=5000)
+
+    return
+
+def manual_cleaning_step(text):
+    """
+    .replace("Roberts-Gant","[REDACTED]")
+    .replace("Dr Eve","[REDACTED]")
+    .replace("Dr Mark","[REDACTED]")
+    .replace("Dr [REDACTED] Brown","[REDACTED]")
+    """
+    new_text = ''
+    if(text != None):
+        # print("original: " + text)
+        new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
+        # if new_text != text:
+            
+            # print("corrected: " + new_text)
+            # print("manual cleaning triggered")
+    return new_text
         
 if __name__ == '__main__':
 
@@ -70,7 +138,7 @@ if __name__ == '__main__':
     parser.add_argument("--table", help="table that data will be extracted from", type=str, required=True)
     parser.add_argument("--template_dir", help="path to dir holding template(s)", type=str, required=True)
     parser.add_argument("--template_file", help="template file name", type=str, required=True)
-    parser.add_argument("--generate_pdf_to", help="dir to generate pdf to", type=str, required=True)
+    parser.add_argument("--generate_to_dir", help="dir to generate output file to. Type will depend on function called ", type=str, required=True)
 
     args = parser.parse_args()
     
@@ -78,7 +146,7 @@ if __name__ == '__main__':
     schema_table_name = args.schema + "." + args.table
     template_dir = args.template_dir
     template_file = args.template_file
-    generated_pdf_dir = args.generate_pdf_to
+    generate_to_dir = args.generate_to_dir
 
     #check if template dir
     
@@ -100,7 +168,7 @@ if __name__ == '__main__':
     #     # encode pdf data to base64 string
 
     #     # write file to disk
-    #     save_pdf(pdf_content, generated_pdf_dir, filename)
+    #     save_to_pdf(pdf_content, generated_pdf_dir, filename)
 
     # data = {'diagnostic_report_identifier':[], 'pdf_data':[]}
     # lst = []
@@ -112,16 +180,45 @@ if __name__ == '__main__':
 
  
     for i, row in enumerate(df.to_dict('records')):
+
+        # check if report freetext columns exist in dataframe and perform additional redaction on them
+        if 'DiagnosticReportText' in df.columns:
+            df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
+
+        if 'ConclusionCodeDisplay' in df.columns:
+            df.at[i,'ConclusionCodeDisplay'] = manual_cleaning_step(row['ConclusionCodeDisplay'])
+
+        if 'ProcedureNote' in df.columns:
+            df.at[i,'ProcedureNote'] = manual_cleaning_step(row['ProcedureNote'])
+
+        if 'Findings' in df.columns:
+            df.at[i,'Findings'] = manual_cleaning_step(row['Findings'])
+
+        if 'Symptoms' in df.columns:
+            df.at[i,'Symptoms'] = manual_cleaning_step(row['Symptoms'])
+
+        if 'Pathological' in df.columns:
+            df.at[i,'Pathological'] = manual_cleaning_step(row['Pathological'])
+
+        if 'Radiology' in df.columns:
+            df.at[i,'Radiology'] = manual_cleaning_step(row['Radiology'])
+
+        if 'DiagnosticReportText' in df.columns:
+            df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
         
+        # generate PDF content
         pdf_content = create_pdf_content(row, template_dir, template_file)
 
         # row['AttachmentName'].replace(row['DiagnosticReportIdentifier'] + '.pdf')
         # row['AttachmentContent'].replace(base64.b64encode(str.encode(pdf_content)))
         # row['AttachmentType'].replace('application/pdf')
 
+        # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = row['DiagnosticReportIdentifier'] + '.pdf'
-        df.at[i, 'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i, 'AttachmentType'] = 'application/pdf'
+        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        df.at[i,'AttachmentType'] = 'application/pdf'
+
+ 
 
         # new_row = {'diagnostic_report_identifier': row['DiagnosticReportIdentifier'], 'pdf_data': base64.b64encode(str.encode(pdf_content))}
         # lst.append(base64.b64encode(str.encode(pdf_content)))      
@@ -133,7 +230,7 @@ if __name__ == '__main__':
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
-    # Old column name                   | New column name
+    #  Old column name                  | New column name
     #  DiagnosticReportIdentifier       | DiagnosticPrimaryIdentifier
     #  DiagnosticReportIdentifierSystem | DiagnosticPrimaryIdentifierSystem
     #  DiagnosticReportStatus           | PrimaryReportStatus
@@ -156,27 +253,26 @@ if __name__ == '__main__':
     #                                                            'ConclusionCodeDisplay','ConclusionText'
     # ])
 
-    columns_list=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                                                               ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
-                                                               'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
-                                                               'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem',
-                                                               'AttachmentName','AttachmentContent',
-                                                                'AttachmentContentMimeType',
-                                                               'ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem',
-                                                               'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode','ConclusionCodeSystem',
-                                                               'ConclusionCodeDisplay','ConclusionText'
-    ]
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem'
+                    ,'AttachmentName','AttachmentContent','AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier'
+                    ,'ConditionIdentifierSystem','ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName'
+                    ,'ConclusionCode','ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
-    b = sys.getsizeof(df)
-    kb = b / 1000
-    KB = kb * 0.976562
-    print("dataframe size of(bytes): " + str(b))
-    print("dataframe size of(kb): " + str(kb))
-    print("dataframe size of(KB): " + str(KB))
-    #convert kilobyte to kibibyte
-    df.info(memory_usage='deep')
+    # monitoring stats
+    # print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
+    # b = sys.getsizeof(df)
+    # kb = b / 1000
+    # KB = kb * 0.976562
+    # print("dataframe size of(bytes): " + str(b))
+    # print("dataframe size of(kb): " + str(kb))
+    # print("dataframe size of(KB): " + str(KB))
+    # #convert kilobyte to kibibyte
+    # df.info(memory_usage='deep')
 
+    save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
 
     # df_subset = df[columns_list]
     # b = sys.getsizeof(df_subset)
@@ -188,34 +284,28 @@ if __name__ == '__main__':
     # #convert kilobyte to kibibyte
     # df_subset.info(memory_usage='deep')
 
-    
-    df_huge = pd.DataFrame(np.random.randint(0, 100, size=(10000000, 50)))
-    df_huge = df_huge.rename(columns={i:f"x_{i}" for i in range(50)})
-    df_huge["category"] = ["A", "B", "C", "D"] * 2500000
 
-    b = sys.getsizeof(df_huge)
-    kb = b / 1000
-    KB = kb * 0.976562
-    print("df_huge dataframe size of(bytes): " + str(b))
-    print("df_huge dataframe size of(kb): " + str(kb))
-    print("df_huge dataframe size of(KB): " + str(KB))
-    #convert kilobyte to kibibyte
-    df_huge.info(memory_usage='deep')
+    """
+    dataframe occupy more space in memory vs when persisted on disk. 
+    attempting to do sizing to help chunk up a large dataset using it's in-mem size value rather than the size on disk. 
+    however this will mean that the exported files will always be smaller than if in memory
+    """
+    # df_huge = pd.DataFrame(np.random.randint(0, 100, size=(10000000, 5)))
+    # df_huge = df_huge.rename(columns={i:f"x_{i}" for i in range(5)})
+    # df_huge["category"] = ["A", "B", "C", "D"] * 2500000
 
-    print("df_huge rows count: " + str(len(df_huge)))
+    # b = sys.getsizeof(df_huge)
+    # kb = b / 1000
+    # KB = kb * 0.976562
+    # print("df_huge dataframe size of(bytes): " + str(b))
+    # print("df_huge dataframe size of(kb): " + str(kb))
+    # print("df_huge dataframe size of(KB): " + str(KB))
+    # #convert kilobyte to kibibyte
+    # df_huge.info(memory_usage='deep')
+          
+    # save_to_delimited_file(df_huge, './generated_csv', 'test_huge_save',max_file_size_mb=25)
 
-def save_csv(dataframe, max_file_size_mb, target_dir, filename):
-    df_size_in_bytes = sys.getsizeof(dataframe)
-    df_size_in_mb = df_size_in_bytes / (10^6)
 
-    df_row_count = len(dataframe)
+    # df_huge.to_csv(f'huge_df_test.csv')
 
-    iteration = round(df_size_in_mb / max_file_size_mb)
-    print("iterations: "+ iteration)
-    number_of_chunks = df_row_count / iteration
-    print("rows per iteration: " + number_of_chunks)   
 
-    # for idx, chunk in enumerate(np.array_split(df, number_of_chunks)):
-    #     chunk.to_csv(f'{target_dir}/{filename}_{idx}.csv')
-
-    
