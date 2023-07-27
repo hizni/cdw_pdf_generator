@@ -1,0 +1,37 @@
+<html>
+    <head>
+
+    </head>
+    <body>
+        <!-- report header -->
+        <table id="report-header" border="1">
+            <tbody>
+            
+            <tr>
+                OxPOS Headline Diagnosis Report Generated from OUH Clinical Data Warehouse
+            </tr>
+            <tr>
+                <td>Patient ID</td>
+                <td>{{ PatientPrimaryIdentifier }}</td>
+            </tr>
+            <tr>
+                <td>Report Date</td>
+                <td>{{ EffectiveDateTime }}</td>
+            </tr>
+            <tr>
+                <td>Report Id</td>
+                <td>{{ DiagnosticReportIdentifier }}</td>
+            </tr>
+        </tbody>
+        </table>
+        <hr>
+        <!-- content -->
+        <table id="report-content" border="1" >
+            <tbody>
+                <tr><td>Headline Diagnosis List</td></tr>
+                <tr><td>{{ EffectiveDateTime }}</td><td>{{ Procedure }}</td></tr>
+                
+            </tbody>
+        </table>
+    </body>
+</html>
