@@ -156,7 +156,6 @@ if __name__ == '__main__':
     # create dataframe from data extracted from table
     df = get_data_from_database(conn, schema_table_name)
    
-    
     # # # iterate over dataframe rows presented as a dictionary
     # # added TQDM progress bar
     # for row in tqdm(df.to_dict('records'), desc="Creating PDF: "):
@@ -214,7 +213,7 @@ if __name__ == '__main__':
         # row['AttachmentType'].replace('application/pdf')
 
         # insert PDF content into dataframe row
-        df.at[i,'AttachmentName'] = row['DiagnosticReportIdentifier'] + '.pdf'
+        df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
         df.at[i,'AttachmentType'] = 'application/pdf'
 
