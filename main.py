@@ -103,26 +103,8 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
 
     return
 
-def manual_cleaning_step(text):
-    """
-    .replace("Roberts-Gant","[REDACTED]")
-    .replace("Dr Eve","[REDACTED]")
-    .replace("Dr Mark","[REDACTED]")
-    .replace("Dr [REDACTED] Brown","[REDACTED]")
-    """
-    new_text = ''
-    if(text != None):
-        # print("original: " + text)
-        new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
-        # if new_text != text:
-            
-            # print("corrected: " + new_text)
-            # print("manual cleaning triggered")
-    return new_text
+
         
-if __name__ == '__navify__':
-    print "this is a generator for navify "
-    
 if __name__ == '__main__':
 
     # get data from data source
