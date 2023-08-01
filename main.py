@@ -120,6 +120,9 @@ def manual_cleaning_step(text):
             # print("manual cleaning triggered")
     return new_text
         
+if __name__ == '__navify__':
+    print "this is a generator for navify "
+    
 if __name__ == '__main__':
 
     # get data from data source
