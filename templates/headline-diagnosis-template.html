@@ -16,11 +16,11 @@
             </tr>
             <tr>
                 <td>Report Date</td>
-                <td>{{ EffectiveDateTime }}</td>
+                <td>{{ MaxEffectiveDateTime }}</td>
             </tr>
             <tr>
                 <td>Report Id</td>
-                <td>{{ DiagnosticReportIdentifier }}</td>
+                <td>{{ MaxDiagnosticReportIdentifier }}</td>
             </tr>
         </tbody>
         </table>
@@ -29,8 +29,8 @@
         <table id="report-content" border="1" >
             <tbody>
                 <tr><td>Headline Diagnosis List</td></tr>
-                <tr><td>{{ EffectiveDateTime }}</td><td>{{ Procedure }}</td></tr>
-                
+                <!-- <tr><td>{{ EffectiveDateTime }}</td><td>{{ ProcedureIdentifier }}</td></tr> -->
+                <tr><td>{{ ProcedureIdentifier_list }}</td></tr>
             </tbody>
         </table>
     </body>

@@ -213,11 +213,12 @@ if __name__ == '__main__':
         # row['AttachmentType'].replace('application/pdf')
 
         # insert PDF content into dataframe row
-        df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentType'] = 'application/pdf'
+        # df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
+        # df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        # df.at[i,'AttachmentType'] = 'application/pdf'
 
- 
+        # save_pdf() - generate PDF for each record
+        save_pdf(pdf_content, generate_to_dir, str(row['EffectiveDateTime']))
 
         # new_row = {'diagnostic_report_identifier': row['DiagnosticReportIdentifier'], 'pdf_data': base64.b64encode(str.encode(pdf_content))}
         # lst.append(base64.b64encode(str.encode(pdf_content)))      
@@ -255,10 +256,10 @@ if __name__ == '__main__':
     columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                     ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
                     ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem'
-                    ,'AttachmentName','AttachmentContent','AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier'
-                    ,'ConditionIdentifierSystem','ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName'
-                    ,'ConclusionCode','ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     # monitoring stats
     # print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
@@ -271,7 +272,9 @@ if __name__ == '__main__':
     # #convert kilobyte to kibibyte
     # df.info(memory_usage='deep')
 
-    save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
+    # saving data extracted from database to file(s)
+    # save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
+
 
     # df_subset = df[columns_list]
     # b = sys.getsizeof(df_subset)
@@ -302,7 +305,6 @@ if __name__ == '__main__':
     # #convert kilobyte to kibibyte
     # df_huge.info(memory_usage='deep')
           
-    # save_to_delimited_file(df_huge, './generated_csv', 'test_huge_save',max_file_size_mb=25)
 
 
     # df_huge.to_csv(f'huge_df_test.csv')
