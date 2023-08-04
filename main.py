@@ -53,22 +53,7 @@ def get_data_from_database(db_connection, schema_table_name):
     # create dataframe
     return pd.DataFrame(rows, columns=columns)
 
-def manual_cleaning_step(text):
-    """
-    .replace("Roberts-Gant","[REDACTED]")
-    .replace("Dr Eve","[REDACTED]")
-    .replace("Dr Mark","[REDACTED]")
-    .replace("Dr [REDACTED] Brown","[REDACTED]")
-    """
-    new_text = ''
-    if(text != None):
-        # print("original: " + text)
-        new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
-        # if new_text != text:
-            
-            # print("corrected: " + new_text)
-            # print("manual cleaning triggered")
-    return new_text
+
 
 def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None, max_file_size_mb = None, delimiter = ","):
     
