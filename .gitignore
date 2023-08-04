@@ -3,3 +3,4 @@ generated_pdf/*
 generated_csv/*
 .DS_Store
 .DS_Store
+__pycache__/

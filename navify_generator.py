@@ -1,4 +1,16 @@
 import main
+import re
+import pymssql
+
+def insert_text_where_match_regex(original_text, pattern, insert_text):
+    matches =  re.finditer(pattern, test_text)
+    for match in matches:
+        # print(match.start())
+        index = match.start()
+        
+        original_text = original_text[:index] + insert_text + original_text[index + 1:]
+
+    return original_text
 
 def manual_cleaning_step(text):
     """
@@ -11,13 +23,10 @@ def manual_cleaning_step(text):
     if(text != None):
         # print("original: " + text)
         new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
-        # if new_text != text:
-            
-            # print("corrected: " + new_text)
-            # print("manual cleaning triggered")
+
     return new_text
 
-def manual_report_fields(df):
+def additional_report_fields_cleaning(df):
     for i, row in enumerate(df.to_dict('records')):
 
         # check if report freetext columns exist in dataframe and perform additional redaction on them
@@ -49,8 +58,7 @@ if __name__ == '__main__':
 
     # generate PDFs for reports in navify 
 
-    # Create database connection string - using SQL authentication
-    conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
+ 
 
     # pathology
     database_name = 'data_products__oxpos_cohort_3'
@@ -69,9 +77,21 @@ if __name__ == '__main__':
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
 
+    # Create database connection string - using SQL authentication
+    conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
 
     # create dataframe from data extracted from table
     df = main.get_data_from_database(conn, schema_table_name)
-    manual_report_fields(df)
+    additional_report_fields_cleaning(df)
 
-    
+
+    test_text = '2021-03-17:Higher risk drinking;2023-02-12:Myxoid liposarcoma;2023-02-12:Pulmonary embolism;2023-02-12:Epigastric hernia;2023-02-16:Pulmonary embolism;2023-02-16:Bladder problem;2023-02-16:Deep vein thrombosis;2023-02-16:Urinary problem'
+    print(test_text)
+
+
+    headline_dx_list_pattern = r';[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+    insert_text_where_match_regex(test_text, headline_dx_list_pattern, '\n')
+
+    mdt_pattern = r' [0-3][0-9].[0-1][0-9].[0-9][0-9]'
+    insert_text_where_match_regex(test_text, mdt_pattern, '\n')
+

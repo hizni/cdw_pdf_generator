@@ -53,6 +53,23 @@ def get_data_from_database(db_connection, schema_table_name):
     # create dataframe
     return pd.DataFrame(rows, columns=columns)
 
+def manual_cleaning_step(text):
+    """
+    .replace("Roberts-Gant","[REDACTED]")
+    .replace("Dr Eve","[REDACTED]")
+    .replace("Dr Mark","[REDACTED]")
+    .replace("Dr [REDACTED] Brown","[REDACTED]")
+    """
+    new_text = ''
+    if(text != None):
+        # print("original: " + text)
+        new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
+        # if new_text != text:
+            
+            # print("corrected: " + new_text)
+            # print("manual cleaning triggered")
+    return new_text
+
 def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None, max_file_size_mb = None, delimiter = ","):
     
     # filepath = pathlib.Path(target_dir + filename)
@@ -163,9 +180,9 @@ if __name__ == '__main__':
     #     print(col)
 
  
+    # check if report freetext columns exist in dataframe and perform additional redaction on them
     for i, row in enumerate(df.to_dict('records')):
 
-        # check if report freetext columns exist in dataframe and perform additional redaction on them
         if 'DiagnosticReportText' in df.columns:
             df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
 
@@ -190,6 +207,9 @@ if __name__ == '__main__':
         if 'DiagnosticReportText' in df.columns:
             df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
         
+        # # perform formatting changes on content for headline_diagnosis table
+        #     if 'ProcedureIdentifier_list' in df.columns:
+        #         df.at[i, 'ProcedureIdentifier_list'] = regex_reformat(row['ProcedureIdentifier_list')
         # generate PDF content
         pdf_content = create_pdf_content(row, template_dir, template_file)
 
@@ -197,13 +217,21 @@ if __name__ == '__main__':
         # row['AttachmentContent'].replace(base64.b64encode(str.encode(pdf_content)))
         # row['AttachmentType'].replace('application/pdf')
 
-        # insert PDF content into dataframe row
-        # df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        # df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        # df.at[i,'AttachmentType'] = 'application/pdf'
+        # insert PDF content into dataframe col in row (if exists in template)
+        if 'AttachmentName' in df.columns:
+            df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
+
+        if 'AttachmentContent' in df.columns:
+            df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        
+        if 'AttachmentType' in df.columns:
+            df.at[i,'AttachmentType'] = 'application/pdf'
+
+        if 'ProcedureIdentifier_list' in df.columns:
+            df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
 
         # save_pdf() - generate PDF for each record
-        save_pdf(pdf_content, generate_to_dir, str(row['EffectiveDateTime']))
+        # save_pdf(pdf_content, generate_to_dir, str(row['EffectiveDateTime']))
 
         # new_row = {'diagnostic_report_identifier': row['DiagnosticReportIdentifier'], 'pdf_data': base64.b64encode(str.encode(pdf_content))}
         # lst.append(base64.b64encode(str.encode(pdf_content)))      
@@ -221,12 +249,13 @@ if __name__ == '__main__':
     #  DiagnosticReportStatus           | PrimaryReportStatus
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
                              'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'})
 
     # print(df['AttachmentContent'])
-
-    filepath = pathlib.Path('./generated_csv/test3.csv')
+    # if (schema_table_name == 'oxpos_headline_diagnosis_list'):
+    #     for i, row in enumerate(df.to_dict('records')):
+            
+    # filepath = pathlib.Path('./generated_csv/test3.csv')
     # df.to_csv(filepath, header=True, chunksize=5000 , columns=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                                                            ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
     #                                                            'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
@@ -238,13 +267,14 @@ if __name__ == '__main__':
     #                                                            'ConclusionCodeDisplay','ConclusionText'
     # ])
 
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    columns_list= [  'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                     ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
                     ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
                     ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
                     ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
 
     # monitoring stats
     # print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
@@ -258,7 +288,7 @@ if __name__ == '__main__':
     # df.info(memory_usage='deep')
 
     # saving data extracted from database to file(s)
-    # save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
+    save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
 
 
     # df_subset = df[columns_list]
