@@ -12,6 +12,19 @@ from datetime import datetime
 import os 
 import math
 
+def manual_cleaning_step(text):
+    """
+    .replace("Roberts-Gant","[REDACTED]")
+    .replace("Dr Eve","[REDACTED]")
+    .replace("Dr Mark","[REDACTED]")
+    .replace("Dr [REDACTED] Brown","[REDACTED]")
+    """
+    new_text = ''
+    if(text != None):
+        # print("original: " + text)
+        new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
+
+    return new_text
 
 # generate pdf_content
 def create_pdf_content(template_vars, templates_dir, template_file):
@@ -60,7 +73,7 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     # filepath = pathlib.Path(target_dir + filename)
     now = datetime.now() # current date and time
     current_datestamp = now.strftime("%Y%m%d")
-    print(current_datestamp)
+    # print(current_datestamp)
 
     # Check whether the specified path exists or not
     isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
@@ -273,7 +286,7 @@ if __name__ == '__main__':
     # df.info(memory_usage='deep')
 
     # saving data extracted from database to file(s)
-    save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
+    save_to_delimited_file(df, generate_to_dir, str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
 
 
     # df_subset = df[columns_list]
