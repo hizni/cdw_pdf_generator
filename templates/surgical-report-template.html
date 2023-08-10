@@ -4,11 +4,11 @@
     </head>
     <body>
         <!-- report header -->
-        <table id="report-header" border="1">
+        <table id="report-header" border="0">
             <tbody>
             
             <tr>
-                OxPOS Surgical Report Generated from OUH Clinical Data Warehouse
+                <b>OxPOS Surgical Report Generated from OUH Clinical Data Warehouse</b>
             </tr>
             <tr>
                 <td>Patient ID</td>
@@ -48,11 +48,11 @@
         <!-- content -->
         <table id="report-content" border="1" >
             <tbody>
-                <tr><td>Procedure Note</td></tr>
-                <tr><td>{{ ProcedureNote }}</td></tr>
+                <tr><td><b>Procedure Note</b></td></tr>
+                <tr><td>{{ ProcedureNote | replace('\n','<br>')}}</td></tr>
                 </tr>
-                <tr><td>Findings</td></tr>
-                <tr><td>{{ Findings }}</td></tr>
+                <tr><td><b>Findings</b></td></tr>
+                <tr><td>{{ Findings | replace('\n','<br>') }}</td></tr>
             </tbody>
         </table>
     </body>

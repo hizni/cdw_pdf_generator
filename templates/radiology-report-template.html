@@ -4,7 +4,7 @@
     </head>
     <body>
         <!-- report header -->
-        <table id="report-header" border="1">
+        <table id="report-header" border="0">
             <tbody>
             
             <tr>
@@ -48,8 +48,8 @@
         <!-- content -->
         <table id="report-content" border="1" >
             <tbody>
-                <tr><td>Diagnosic Report</td></tr>
-                <tr><td>{{ DiagnosticReportText }}</td></tr>
+                <tr><td><b>Diagnosic Report</b></td></tr>
+                <tr><td>{{ DiagnosticReportText  | replace('\n','<br>') }}</td></tr>
                 </tr>
             </tbody>
         </table>

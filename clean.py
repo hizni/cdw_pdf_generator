@@ -92,7 +92,7 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     # if file size is not an issue, just output to csv
     if(max_file_size_mb == None):
         if(timestamp_file == True):
-            output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000)
+            output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
         else:
             output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
         
@@ -107,16 +107,16 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
 
         if iteration == 1:
             if(timestamp_file == True):
-                output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000)
+                output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
             else:
-                output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+                output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
         else:
             for i, start in enumerate(range(0, df_row_count, number_of_rows_in_chunk)):
                 # output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{filename}_{i}.csv', chunksize=5000)
                 if(timestamp_file == True):
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{i}._{filename}.csv', header=True, chunksize=5000)
+                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{i}._{filename}.csv', header=True, chunksize=5000, index=False)
                 else:
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}.csv', header=True, chunksize=5000)
+                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}.csv', header=True, chunksize=5000, index=False)
 
     return
 
@@ -146,7 +146,7 @@ def manual_clean_df(df):
         df.at[i,'Radiology'] = manual_cleaning_regex(row['Radiology'])
 
     if 'DiagnosticReportText' in df.columns:
-        df.at[i,'DiagnosticReportText'] = manual_cleaning_regex(row['DiagnosticReportText'])  
+        df.at[i,'DiagnosticReportText'] = manual_cleaning_regex(row['DiagnosticReportText'])
         
             
     return df
@@ -177,8 +177,8 @@ if __name__ == '__main__':
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
         df.at[i,'AttachmentType'] = 'application/pdf'
 
-        # saving PDFs to disk to check
-        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+        # # saving PDFs to disk to check
+        # save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -260,6 +260,9 @@ if __name__ == '__main__':
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
         df.at[i,'AttachmentType'] = 'application/pdf'
+
+        # saving PDFs to disk to check
+        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well

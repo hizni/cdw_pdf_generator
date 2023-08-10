@@ -4,7 +4,7 @@
     </head>
     <body>
         <!-- report header -->
-        <table id="report-header" border="1">
+        <table id="report-header" border="0">
             <tbody>
             
             <tr>
@@ -44,20 +44,20 @@
         <!-- content -->
         <table id="report-content" border="1" >
             <tbody>
-                <tr><td>Symptoms</td></tr>
-                <tr><td>{{ Symptoms }}</td></tr>
+                <tr><td><b>Symptoms</b></td></tr>
+                <tr><td>{{ Symptoms | replace('\n','<br>') }}</td></tr>
                 </tr>
 
-                <tr><td>Pathological</td></tr>
-                <tr><td>{{ Pathological }}</td></tr>
+                <tr><td><b>Pathological</b></td></tr>
+                <tr><td>{{ Pathological | replace('\n','<br>') }}</td></tr>
                 </tr>
 
-                <tr><td>Radiology</td></tr>
-                <tr><td>{{ Radiology }}</td></tr>
+                <tr><td><b>Radiology</b></td></tr>
+                <tr><td>{{ Radiology | replace('\n','<br>') }}</td></tr>
                 </tr>
 
-                <tr><td>Diagnosic Report</td></tr>
-                <tr><td>{{ DiagnosticReportText }}</td></tr>
+                <tr><td><b>Diagnosic Report</b></td></tr>
+                <tr><td>{{ DiagnosticReportText | replace('\n','<br>')}}</td></tr>
                 </tr>
             </tbody>
         </table>
