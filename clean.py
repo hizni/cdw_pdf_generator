@@ -262,7 +262,7 @@ if __name__ == '__main__':
         df.at[i,'AttachmentType'] = 'application/pdf'
 
         # saving PDFs to disk to check
-        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
