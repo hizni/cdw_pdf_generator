@@ -19,6 +19,22 @@ def get_data_from_database(db_connection, schema_table_name):
 
     return df
 
+def save_pdf(file_content, target_dir, filename):
+    try:
+        # with open('your_pdf_file_here.pdf', 'wb+') as file:
+        #     file.write(file_content)
+
+        config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+
+        output_pdf_path_and_file = target_dir + filename + '.pdf'
+        
+        pdfkit.from_string(file_content, output_pdf_path_and_file, configuration=config)
+
+    except Exception as error:
+        # logging.error(f'Error saving file to disc. Error: {error}')
+        print(f'Error saving file to disc. Error: {error}')
+        raise error
+    
 def manual_cleaning_regex(text):
     """
     .replace("Roberts-Gant","[REDACTED]")
@@ -98,9 +114,9 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
             for i, start in enumerate(range(0, df_row_count, number_of_rows_in_chunk)):
                 # output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{filename}_{i}.csv', chunksize=5000)
                 if(timestamp_file == True):
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}_{i}.csv', header=True, chunksize=5000)
+                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{i}._{filename}.csv', header=True, chunksize=5000)
                 else:
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{filename}_{i}.csv', header=True, chunksize=5000)
+                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}.csv', header=True, chunksize=5000)
 
     return
 
@@ -161,6 +177,9 @@ if __name__ == '__main__':
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
         df.at[i,'AttachmentType'] = 'application/pdf'
 
+        # saving PDFs to disk to check
+        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
     #  Old column name                  | New column name
@@ -180,6 +199,8 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
+
+    diagnostic_reports_df = df
     save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 2 : radiology report ====')
@@ -219,6 +240,7 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
     save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 3 : surgical report ====')
@@ -258,6 +280,7 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
     save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 4 : MDT report ====')
@@ -297,8 +320,23 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
     save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
+
+
+    print('==== output 1 to 4 : diagnostic reports in one file =====')
+
+    diagnostic_reports_df
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    
+    save_to_delimited_file(diagnostic_reports_df, './generated', 'diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 5 : headline diagnosis ====')
     df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_headline_diagnosis')
