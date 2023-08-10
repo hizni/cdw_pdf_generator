@@ -1,4 +1,4 @@
-import pymssql
+
 import pandas as pd
 import jinja2
 import pdfkit
@@ -11,6 +11,7 @@ import numpy as np
 from datetime import datetime 
 import os 
 import math
+import pyodbc
 
 def manual_cleaning_step(text):
     """
@@ -87,35 +88,37 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     else:
         output_df = dataframe
 
-    # getting info to help make decisions
-    df_size_in_bytes = sys.getsizeof(output_df)
-    df_size_in_mb = (df_size_in_bytes / 1000000)
+    if len(output_df) > 0:
+        # getting info to help make decisions
+        df_size_in_bytes = sys.getsizeof(output_df)
+        df_size_in_mb = (df_size_in_bytes / 1000000)
 
-    # if file size is not an issue, just output to csv
-    if(max_file_size_mb == None):
-        output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+        # if file size is not an issue, just output to csv
+        if(max_file_size_mb == None):
+            output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
 
-        
+            
+        else:
+            df_row_count = len(output_df)
+
+            # print("dataframe_size_in_b calc: " + str(df_size_in_bytes))
+            # print("dataframe_size_in_mb calc: " + str(df_size_in_mb))
+
+            iteration = math.ceil(df_size_in_mb / max_file_size_mb)
+            number_of_chunks = int(df_row_count / iteration)
+
+            # print("max_file_size: " + str(max_file_size_mb))
+            # print("rows in dataframe: " + str(df_row_count))
+            # print("iterations: "+ str(iteration))
+            # print("rows per iteration: " + str(number_of_chunks))
+
+            # for idx, chunk in enumerate(np.array_split(output_df, number_of_chunks)):
+            #     chunk.to_csv(f'{target_dir}{filename}_{idx}.csv')
+
+            for i, start in enumerate(range(0, df_row_count, number_of_chunks)):
+                output_df[start:start+number_of_chunks].to_csv(f'{target_dir}/{filename}_{i}.csv', chunksize=5000)
     else:
-        df_row_count = len(output_df)
-
-        # print("dataframe_size_in_b calc: " + str(df_size_in_bytes))
-        # print("dataframe_size_in_mb calc: " + str(df_size_in_mb))
-
-        iteration = math.ceil(df_size_in_mb / max_file_size_mb)
-        number_of_chunks = int(df_row_count / iteration)
-
-        # print("max_file_size: " + str(max_file_size_mb))
-        # print("rows in dataframe: " + str(df_row_count))
-        # print("iterations: "+ str(iteration))
-        # print("rows per iteration: " + str(number_of_chunks))
-
-        # for idx, chunk in enumerate(np.array_split(output_df, number_of_chunks)):
-        #     chunk.to_csv(f'{target_dir}{filename}_{idx}.csv')
-
-        for i, start in enumerate(range(0, df_row_count, number_of_chunks)):
-            output_df[start:start+number_of_chunks].to_csv(f'{target_dir}/{filename}_{i}.csv', chunksize=5000)
-
+        print('data frame is empty for {filename} . Nothing to create' )
     return
 
 
@@ -151,8 +154,12 @@ if __name__ == '__main__':
     #check if template dir
     
     # Create database connection string - using SQL authentication
-    conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
+    # conn = pymssql.connect(server='oxnetdwp02.oxnet.nhs.uk', user='py_login', password='H3bQZf!UmLsG', database=database_name)  
 
+    conn = pyodbc.connect('Driver={ODBC Driver 18 for SQL Server}' + \
+                          ';SERVER=oxnetdwp02.oxnet.nhs.uk' + \
+                          ';DATABASE=' + database_name + \
+                          ';TrustServerCertificate=Yes;Trusted_Connection=Yes;' )
     # create dataframe from data extracted from table
     df = get_data_from_database(conn, schema_table_name)
    
@@ -178,9 +185,9 @@ if __name__ == '__main__':
     #     print(col)
 
  
-    # check if report freetext columns exist in dataframe and perform additional redaction on them
     for i, row in enumerate(df.to_dict('records')):
 
+        # check if report freetext columns exist in dataframe and perform additional redaction on them
         if 'DiagnosticReportText' in df.columns:
             df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
 
@@ -205,9 +212,6 @@ if __name__ == '__main__':
         if 'DiagnosticReportText' in df.columns:
             df.at[i,'DiagnosticReportText'] = manual_cleaning_step(row['DiagnosticReportText'])
         
-        # # perform formatting changes on content for headline_diagnosis table
-        #     if 'ProcedureIdentifier_list' in df.columns:
-        #         df.at[i, 'ProcedureIdentifier_list'] = regex_reformat(row['ProcedureIdentifier_list')
         # generate PDF content
         pdf_content = create_pdf_content(row, template_dir, template_file)
 
@@ -215,21 +219,13 @@ if __name__ == '__main__':
         # row['AttachmentContent'].replace(base64.b64encode(str.encode(pdf_content)))
         # row['AttachmentType'].replace('application/pdf')
 
-        # insert PDF content into dataframe col in row (if exists in template)
-        if 'AttachmentName' in df.columns:
-            df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-
-        if 'AttachmentContent' in df.columns:
-            df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        
-        if 'AttachmentType' in df.columns:
-            df.at[i,'AttachmentType'] = 'application/pdf'
-
-        if 'ProcedureIdentifier_list' in df.columns:
-            df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        # insert PDF content into dataframe row
+        # df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
+        # df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        # df.at[i,'AttachmentType'] = 'application/pdf'
 
         # save_pdf() - generate PDF for each record
-        # save_pdf(pdf_content, generate_to_dir, str(row['EffectiveDateTime']))
+        save_pdf(pdf_content, generate_to_dir, str(row['EffectiveDateTime']))
 
         # new_row = {'diagnostic_report_identifier': row['DiagnosticReportIdentifier'], 'pdf_data': base64.b64encode(str.encode(pdf_content))}
         # lst.append(base64.b64encode(str.encode(pdf_content)))      
@@ -247,13 +243,12 @@ if __name__ == '__main__':
     #  DiagnosticReportStatus           | PrimaryReportStatus
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
                              'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'})
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
 
     # print(df['AttachmentContent'])
-    # if (schema_table_name == 'oxpos_headline_diagnosis_list'):
-    #     for i, row in enumerate(df.to_dict('records')):
-            
-    # filepath = pathlib.Path('./generated_csv/test3.csv')
+
+    filepath = pathlib.Path('./generated_csv/test3.csv')
     # df.to_csv(filepath, header=True, chunksize=5000 , columns=['SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                                                            ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode',
     #                                                            'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem',
@@ -265,14 +260,13 @@ if __name__ == '__main__':
     #                                                            'ConclusionCodeDisplay','ConclusionText'
     # ])
 
-    columns_list= [  'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                     ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
                     ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
                     ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
                     ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
 
     # monitoring stats
     # print("dataframe memory usage (bytes): " + str(df.memory_usage(deep=True).sum()))
@@ -286,7 +280,7 @@ if __name__ == '__main__':
     # df.info(memory_usage='deep')
 
     # saving data extracted from database to file(s)
-    save_to_delimited_file(df, generate_to_dir, str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
+    # save_to_delimited_file(df, './generated_csv', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25)
 
 
     # df_subset = df[columns_list]

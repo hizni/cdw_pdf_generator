@@ -12,7 +12,6 @@ Jinja2 = "^3.1.2"
 pdfkit = "^1.0.0"
 tdqm = "^0.0.1"
 argparse = "^1.4.0"
-pymssql = "^2.2.8"
 pyodbc = "^4.0.39"
 
 

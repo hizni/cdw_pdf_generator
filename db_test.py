@@ -45,7 +45,7 @@ def sqlserver_freetds_connection(server, username, password):
 
 
 
-if __name__ == '__main__':
+if __name__ == '__db_test__':
 
     # server = 'oxnetdwp02.oxnet.nhs.uk'
     # database = 'data_products__oxpos_cohort_3'

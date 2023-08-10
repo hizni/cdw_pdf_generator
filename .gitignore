@@ -1,6 +1,7 @@
 .venv/
 generated_pdf/*
 generated_csv/*
+generated/*
 .DS_Store
 .DS_Store
 __pycache__/
