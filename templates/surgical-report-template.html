@@ -49,10 +49,10 @@
         <table id="report-content" border="1" >
             <tbody>
                 <tr><td><b>Procedure Note</b></td></tr>
-                <tr><td>{{ ProcedureNote | replace('\n','<br>')}}</td></tr>
+                <tr><td>{{ ProcedureNote | replace('\r','<br>') | replace('\n','<br>') }}</td></tr>
                 </tr>
                 <tr><td><b>Findings</b></td></tr>
-                <tr><td>{{ Findings | replace('\n','<br>') }}</td></tr>
+                <tr><td>{{ Findings | replace('\r','<br>') | replace('\n','<br>') }}</td></tr>
             </tbody>
         </table>
     </body>

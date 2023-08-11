@@ -49,7 +49,7 @@
         <table id="report-content" border="1" >
             <tbody>
                 <tr><td><b>Diagnosic Report</b></td></tr>
-                <tr><td>{{ DiagnosticReportText  | replace('\n','<br>') }}</td></tr>
+                <tr><td>{{ DiagnosticReportText  | replace('\r','<br>') | replace('\n','<br>') }}</td></tr>
                 </tr>
             </tbody>
         </table>

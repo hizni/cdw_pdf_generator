@@ -8,7 +8,7 @@
             <tbody>
             
             <tr>
-                OxPOS Diagnostic Report Generated from OUH Clinical Data Warehouse
+                <b>OxPOS Diagnostic Report Generated from OUH Clinical Data Warehouse</b>
             </tr>
             <tr>
                 <td>Patient ID</td>
@@ -45,7 +45,7 @@
         <table id="report-content" border="1" >
             <tbody>
                 <tr><td><b>Diagnosic Report</b></td></tr>
-                <tr><td> {{ DiagnosticReportText | replace('\n','<br>') }}</td></tr>
+                <tr><td> {{ DiagnosticReportText | replace('\r','<br>') | replace('\n','<br>') }}</td></tr>
                 </tr>
             </tbody>
         </table>
