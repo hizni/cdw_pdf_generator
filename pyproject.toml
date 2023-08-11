@@ -12,7 +12,7 @@ Jinja2 = "^3.1.2"
 pdfkit = "^1.0.0"
 tdqm = "^0.0.1"
 argparse = "^1.4.0"
-pyodbc = "^4.0.39"
+pyodbc = "4.0.34"
 
 
 [build-system]
