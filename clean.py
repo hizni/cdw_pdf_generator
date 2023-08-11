@@ -46,6 +46,25 @@ def manual_cleaning_regex(text):
     if(text != None):
         # print("original: " + text)
         new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
+        # new_text = str(text).replace("Roberts-Gant","[REDACTED]")
+        # new_text = str(new_text).replace("Dr Eve","[REDACTED]")
+        # new_text = str(new_text).replace("Dr Mark","[REDACTED]")
+        # new_text = str(new_text).replace("Dr [REDACTED] Brown","[REDACTED]")
+
+        # if (text.find("Brown") !=  -1):
+        #     print("found text to be cleaned: Brown")
+        #     print("string located at : " + str(text.find("Brown")))
+        #     print(text)
+        #     print(" === removed text === ")
+        #     new_text = str(text).replace("Dr [REDACTED] Brown","[REDACTED]")
+        #     print (new_text)
+        # else:
+        #     print("couldn't find text to be cleaned: Brown")
+        #     new_text = text
+        # new_text = str(new_text).replace("Dr Eve","[REDACTED]")
+        # new_text = str(new_text).replace("Dr Mark","[REDACTED]")
+        # new_text = str(new_text).replace("Dr [REDACTED] Brown","[REDACTED]")
+
 
     return new_text
 
@@ -121,34 +140,30 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     return
 
 def manual_clean_df(df):
-   for i, row in enumerate(df.to_dict('records')):
-
+    
+    for i, row in enumerate(df.to_dict('records')):
     # check if report freetext columns exist in dataframe and perform additional redaction on them
-    if 'DiagnosticReportText' in df.columns:
-        df.at[i,'DiagnosticReportText'] = manual_cleaning_regex(row['DiagnosticReportText'])
+        if 'DiagnosticReportText' in df.columns:
+            df.at[i,'DiagnosticReportText'] = manual_cleaning_regex(row['DiagnosticReportText'])
 
-    if 'ConclusionCodeDisplay' in df.columns:
-        df.at[i,'ConclusionCodeDisplay'] = manual_cleaning_regex(row['ConclusionCodeDisplay'])
+        if 'ConclusionCodeDisplay' in df.columns:
+            df.at[i,'ConclusionCodeDisplay'] = manual_cleaning_regex(row['ConclusionCodeDisplay'])
 
-    if 'ProcedureNote' in df.columns:
-        df.at[i,'ProcedureNote'] = manual_cleaning_regex(row['ProcedureNote'])
+        if 'ProcedureNote' in df.columns:
+            df.at[i,'ProcedureNote'] = manual_cleaning_regex(row['ProcedureNote'])
 
-    if 'Findings' in df.columns:
-        df.at[i,'Findings'] = manual_cleaning_regex(row['Findings'])
+        if 'Findings' in df.columns:
+            df.at[i,'Findings'] = manual_cleaning_regex(row['Findings'])
 
-    if 'Symptoms' in df.columns:
-        df.at[i,'Symptoms'] = manual_cleaning_regex(row['Symptoms'])
+        if 'Symptoms' in df.columns:
+            df.at[i,'Symptoms'] = manual_cleaning_regex(row['Symptoms'])
 
-    if 'Pathological' in df.columns:
-        df.at[i,'Pathological'] = manual_cleaning_regex(row['Pathological'])
+        if 'Pathological' in df.columns:
+            df.at[i,'Pathological'] = manual_cleaning_regex(row['Pathological'])
 
-    if 'Radiology' in df.columns:
-        df.at[i,'Radiology'] = manual_cleaning_regex(row['Radiology'])
-
-    if 'DiagnosticReportText' in df.columns:
-        df.at[i,'DiagnosticReportText'] = manual_cleaning_regex(row['DiagnosticReportText'])
-        
-            
+        if 'Radiology' in df.columns:
+            df.at[i,'Radiology'] = manual_cleaning_regex(row['Radiology'])
+         
     return df
 
 if __name__ == '__main__':
@@ -167,7 +182,7 @@ if __name__ == '__main__':
     df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_diagnostic_report_pathology')
 
     df = manual_clean_df(df)
- 
+
     for i, row in enumerate(df.to_dict('records')):
         # generate PDF content
         pdf_content = create_pdf_content(row, template_dir, template_file)
@@ -175,10 +190,10 @@ if __name__ == '__main__':
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentType'] = 'application/pdf'
+        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -219,7 +234,7 @@ if __name__ == '__main__':
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentType'] = 'application/pdf'
+        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -259,7 +274,7 @@ if __name__ == '__main__':
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentType'] = 'application/pdf'
+        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # saving PDFs to disk to check
         # save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
@@ -302,7 +317,7 @@ if __name__ == '__main__':
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
         df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentType'] = 'application/pdf'
+        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
