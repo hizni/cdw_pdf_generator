@@ -44,27 +44,8 @@ def manual_cleaning_regex(text):
     """
     new_text = ''
     if(text != None):
-        # print("original: " + text)
+
         new_text = str(text).replace("Roberts-Gant","[REDACTED]").replace("Dr Eve","[REDACTED]").replace("Dr Mark","[REDACTED]").replace("Dr [REDACTED] Brown","[REDACTED]")
-        # new_text = str(text).replace("Roberts-Gant","[REDACTED]")
-        # new_text = str(new_text).replace("Dr Eve","[REDACTED]")
-        # new_text = str(new_text).replace("Dr Mark","[REDACTED]")
-        # new_text = str(new_text).replace("Dr [REDACTED] Brown","[REDACTED]")
-
-        # if (text.find("Brown") !=  -1):
-        #     print("found text to be cleaned: Brown")
-        #     print("string located at : " + str(text.find("Brown")))
-        #     print(text)
-        #     print(" === removed text === ")
-        #     new_text = str(text).replace("Dr [REDACTED] Brown","[REDACTED]")
-        #     print (new_text)
-        # else:
-        #     print("couldn't find text to be cleaned: Brown")
-        #     new_text = text
-        # new_text = str(new_text).replace("Dr Eve","[REDACTED]")
-        # new_text = str(new_text).replace("Dr Mark","[REDACTED]")
-        # new_text = str(new_text).replace("Dr [REDACTED] Brown","[REDACTED]")
-
 
     return new_text
 
@@ -85,15 +66,25 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     current_datestamp = now.strftime("%Y%m%d")
     # print(current_datestamp)
 
-    # Check whether the specified path exists or not
-    isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+    # Check whether the specified target path exists or not
+    isExist = os.path.exists(f'{target_dir}/')
     if not isExist:
-        os.makedirs(f'{target_dir}/{current_datestamp}')
+        raise NotADirectoryError
+    else:
+        # Check whether a subdir with todays timestamp already exists or not. If not create it
+        isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+        if not isExist:
+            os.makedirs(f'{target_dir}/{current_datestamp}')
 
     # get subset of original dataframe based on list of column names passed. 
     # if no column names are passed just process original dataframe
     if (columns_list != None):
-        output_df = dataframe[columns_list]
+        # if (set(list(columns_list)).issubset(set(dataframe.columns))):
+        if (all(item in list(dataframe.columns) for item in list(columns_list))):
+            # check if list of passed column names exist in columns in dataframe. If they do not then we have an issue
+            output_df = dataframe[columns_list]
+        else:
+            raise ValueError('Columns in columnlist do not exist in dataframe ')
     else:
         output_df = dataframe
 
@@ -216,7 +207,7 @@ if __name__ == '__main__':
 
 
     diagnostic_reports_df = df
-    save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 2 : radiology report ====')
     schema_table_name = 'oxpos_cohort_3.oxpos_diagostic_report_radiology'
@@ -256,7 +247,7 @@ if __name__ == '__main__':
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
-    save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 3 : surgical report ====')
     schema_table_name = 'oxpos_cohort_3.oxpos_surgical_report'
@@ -299,7 +290,7 @@ if __name__ == '__main__':
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
-    save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 4 : MDT report ====')
     schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_mdt_report'
@@ -339,13 +330,13 @@ if __name__ == '__main__':
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
-    save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
 
 
     print('==== output 1 to 4 : diagnostic reports in one file =====')
 
-    diagnostic_reports_df
+    # diagnostic_reports_df
     columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                     ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
                     ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -354,7 +345,7 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
-    save_to_delimited_file(diagnostic_reports_df, './generated', 'diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    save_to_delimited_file(diagnostic_reports_df, './generated', 'navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 5 : headline diagnosis ====')
     df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_headline_diagnosis')
@@ -527,4 +518,23 @@ if __name__ == '__main__':
 
     save_to_delimited_file(df, './generated', 'navify_body_structure', timestamp_file=True)
 
+    print('=== output 13 : procedure ====')
+    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_procedure')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+
+    save_to_delimited_file(df, './generated', 'navify_body_structure', timestamp_file=True)
     conn.close()
