@@ -35,6 +35,16 @@ def save_pdf(file_content, target_dir, filename):
         print(f'Error saving file to disc. Error: {error}')
         raise error
     
+def get_pdf_content(file_content):
+    try:
+        config = pdfkit.configuration(wkhtmltopdf='/usr/local/bin/wkhtmltopdf')
+        return pdfkit.from_string(file_content, configuration=config)
+    
+    except Exception as error:
+        # logging.error(f'Error saving file to disc. Error: {error}')
+        print(f'Error getting PDF content. Error: {error}')
+        raise error
+    
 def manual_cleaning_regex(text):
     """
     .replace("Roberts-Gant","[REDACTED]")
@@ -157,34 +167,29 @@ def manual_clean_df(df):
          
     return df
 
-if __name__ == '__main__':
-    server = 'oxnetdwp02'
-    database = 'data_products__oxpos_cohort_3'
-
-    # create connection
-    conn = get_db_connection(server , database )
-
-    print('=== output 1 : pathology report ====')
-
+def generate_pathology_oxpos_submission(connection):
     schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_report_pathology'
     template_dir = './templates'
     template_file = 'pathology-report-template.html'
 
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_diagnostic_report_pathology')
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_report_pathology')
 
     df = manual_clean_df(df)
 
     for i, row in enumerate(df.to_dict('records')):
         # generate PDF content
         pdf_content = create_pdf_content(row, template_dir, template_file)
-    
-        # insert PDF content into dataframe row
-        df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
-        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # # saving PDFs to disk to check
-        save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./generated/pdf/pathology/', filename=str(row['DiagnosticReportIdentifier']))
+
+        # insert PDF content into dataframe row
+        df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
+        # df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+
+        df.at[i,'AttachmentContent'] = base64.b64encode(get_pdf_content(pdf_content)).decode()
+        df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
+
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -197,24 +202,14 @@ if __name__ == '__main__':
                              'DiagnosticReportStatus' : 'PrimaryReportStatus'
                        })
 
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    diagnostic_reports_df = df
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
-
-    print('=== output 2 : radiology report ====')
+    return df
+ 
+def generate_radiology_oxpos_submission(connection):
     schema_table_name = 'oxpos_cohort_3.oxpos_diagostic_report_radiology'
     template_dir = './templates'
     template_file = 'radiology-report-template.html'
 
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_diagnostic_report_radiology')
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_report_radiology')
 
     df = manual_clean_df(df)
  
@@ -224,8 +219,12 @@ if __name__ == '__main__':
     
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        df.at[i,'AttachmentContent'] = base64.b64encode(get_pdf_content(pdf_content)).decode()
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
+
+        # saving PDFs to disk to check
+        # save_pdf(pdf_content, target_dir='./generated/pdf/radiology/', filename=str(row['DiagnosticReportIdentifier']))
+
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -238,23 +237,14 @@ if __name__ == '__main__':
                              'DiagnosticReportStatus' : 'PrimaryReportStatus'
                        })
 
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
-
-    print('=== output 3 : surgical report ====')
+    return df
+   
+def generate_surgical_reports(connection):
     schema_table_name = 'oxpos_cohort_3.oxpos_surgical_report'
     template_dir = './templates'
     template_file = 'surgical-report-template.html'
 
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_surgical_report')
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_surgical_report')
 
     df = manual_clean_df(df)
  
@@ -264,11 +254,11 @@ if __name__ == '__main__':
     
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        df.at[i,'AttachmentContent'] = base64.b64encode(get_pdf_content(pdf_content)).decode()
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./generated/pdf/surgical/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -289,15 +279,14 @@ if __name__ == '__main__':
                     ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                     ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    return df
 
-    print('=== output 4 : MDT report ====')
+def generate_mdt_reports(connection):
     schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_mdt_report'
     template_dir = './templates'
     template_file = 'mdt-report-template.html'
 
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_diagnostic_mdt_report')
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_mdt_report')
 
     df = manual_clean_df(df)
  
@@ -307,8 +296,12 @@ if __name__ == '__main__':
     
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
-        df.at[i,'AttachmentContent'] = base64.b64encode(str.encode(pdf_content)).decode()
+        df.at[i,'AttachmentContent'] = base64.b64encode(get_pdf_content(pdf_content)).decode()
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
+
+        # saving PDFs to disk to check
+        # save_pdf(pdf_content, target_dir='./generated/pdf/mdt/', filename=str(row['DiagnosticReportIdentifier']))
+
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -321,15 +314,167 @@ if __name__ == '__main__':
                              'DiagnosticReportStatus' : 'PrimaryReportStatus'
                        })
 
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    
+    return df
 
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, df])
+def generate_headline_diagnosis(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_headline_diagnosis')
+
+    for i, row in enumerate(df.to_dict('records')):
+        # generate PDF content
+        # pdf_content = create_pdf_content(row, template_dir, template_file)
+    
+        # insert PDF content into dataframe row
+        df.at[i,'EffectiveDateTime'] = 'Date: ' + str(row['EffectiveDateTime'])
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier' : 'PMHIdentifier',
+                             'DiagnosticReportIdentifierSystem' : 'PMHIdentifierSystem',
+                             'ProcedureIdentifier' : 'PMHTitle',
+                             'EffectiveDateTime' : 'PMHDescription'
+                       })
+
+    return df
+
+def generate_observation_grade_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_grade')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    return df
+
+def generate_icdo_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_icdo')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    return df
+
+def generate_tnm_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_tnm')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    return df
+
+def generate_patient_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_patient')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    return df
+
+def generate_condition_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_condition')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    return df
+
+def generate_body_structure_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_body_structure')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    return df
+
+def generate_procedure_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_procedure')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    return df
+
+if __name__ == '__main__':
+    server = 'oxnetdwp04'
+    database = 'data_products__oxpos_cohort_3'
+
+    # create connection
+    conn = get_db_connection(server , database )
+    print('=== output 0 : patient ====')
+    save_to_delimited_file(generate_patient_extract(conn), './generated', 'navify_patient', timestamp_file=True)
+   
+
+    print('=== output 1 : pathology report ====')
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+    
+    diagnostic_reports_df = generate_pathology_oxpos_submission(conn)
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+
+    print('=== output 2 : radiology report ====')
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+
+    print('=== output 3 : surgical report ====')
+   
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_surgical_reports(conn)])
+    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+
+    print('=== output 4 : MDT report ====')
+   
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
     # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
 
@@ -348,21 +493,6 @@ if __name__ == '__main__':
     save_to_delimited_file(diagnostic_reports_df, './generated', 'navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 5 : headline diagnosis ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_headline_diagnosis')
-
-    for i, row in enumerate(df.to_dict('records')):
-        # generate PDF content
-        # pdf_content = create_pdf_content(row, template_dir, template_file)
-    
-        # insert PDF content into dataframe row
-        df.at[i,'EffectiveDateTime'] = 'Date: ' + str(row['EffectiveDateTime'])
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier' : 'PMHIdentifier',
-                             'DiagnosticReportIdentifierSystem' : 'PMHIdentifierSystem',
-                             'ProcedureIdentifier' : 'PMHTitle',
-                             'EffectiveDateTime' : 'PMHDescription'
-                       })
     
     columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
                     ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
@@ -376,37 +506,14 @@ if __name__ == '__main__':
                 
 
 
-    save_to_delimited_file(df, './generated', 'navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    save_to_delimited_file(generate_headline_diagnosis(conn), './generated', 'navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
     print('=== output 6 : observation grade ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_observation_grade')
 
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(df, './generated', 'navify_observation_grade', timestamp_file=True)
+    save_to_delimited_file(generate_observation_grade_extract(conn), './generated', 'navify_observation_grade', timestamp_file=True)
 
     print('=== output 7 : ICDO grade ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_observation_icdo')
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
+        
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
     #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -416,17 +523,10 @@ if __name__ == '__main__':
     #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
 
-    save_to_delimited_file(df, './generated', 'navify_observation_icdo', timestamp_file=True)
+    save_to_delimited_file(generate_icdo_extract(conn), './generated', 'navify_observation_icdo', timestamp_file=True)
 
     print('=== output 8 : TNM grade ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_observation_tnm')
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
+   
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
     #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -436,17 +536,12 @@ if __name__ == '__main__':
     #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
 
-    save_to_delimited_file(df, './generated', 'navify_observation_tnm', timestamp_file=True)
+    save_to_delimited_file(generate_tnm_extract(conn), './generated', 'navify_observation_tnm', timestamp_file=True)
 
-    print('=== output 9 : patient ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_patient')
+   
 
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
+    print('=== output 10 : condition ====')
+   
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
     #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -456,16 +551,22 @@ if __name__ == '__main__':
     #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
 
-    save_to_delimited_file(df, './generated', 'navify_patient', timestamp_file=True)
+    save_to_delimited_file(generate_condition_extract(conn), './generated', 'navify_condition', timestamp_file=True)
       
-    print('=== output 10 : patient ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_patient')
+    print('=== output 11 : body structure ====')
+   
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
+
+    save_to_delimited_file(generate_body_structure_extract(conn), './generated', 'navify_body_structure', timestamp_file=True)
+
+    print('=== output 12 : procedure ====')
     
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
@@ -476,65 +577,5 @@ if __name__ == '__main__':
     #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
 
-    save_to_delimited_file(df, './generated', 'navify_patient', timestamp_file=True)
-
-    print('=== output 11 : condition ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_condition')
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(df, './generated', 'navify_condition', timestamp_file=True)
-      
-    print('=== output 12 : body structure ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_body_structure')
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(df, './generated', 'navify_body_structure', timestamp_file=True)
-
-    print('=== output 13 : procedure ====')
-    df = get_data_from_database(conn, 'oxpos_cohort_3.oxpos_procedure')
-
-    # renaming cols
-    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
-                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
-                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
-                       })
-    
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(df, './generated', 'navify_body_structure', timestamp_file=True)
+    save_to_delimited_file(generate_procedure_extract(conn), './generated', 'navify_procedure', timestamp_file=True)
     conn.close()

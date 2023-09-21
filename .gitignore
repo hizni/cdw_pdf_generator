@@ -6,3 +6,4 @@ generated/*
 .DS_Store
 __pycache__/
 .vscode/
+poetry.lock
