@@ -69,7 +69,22 @@ def create_pdf_content(template_vars, templates_dir, template_file):
 
     return html_out
 
-def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None, max_file_size_mb = None, delimiter = ",", timestamp_file=False):
+def replace_templated_string(inputString):
+    now = datetime.now() # current date and time
+
+    # datestamp
+    current_datestamp = now.strftime("%Y%m%d")
+    inputString = inputString.replace("{{datestamp}}", current_datestamp)
+
+    # timestamp
+    current_timestamp = now.strftime("%Y%m%d%H%M")
+    inputString = inputString.replace("{{timestamp}}", current_timestamp)    
+
+    # add other templates to this function as needed
+
+    return inputString
+
+def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None, columns_list = None, max_file_size_mb = None, delimiter = ",", timestamp_file=False):
     
     # filepath = pathlib.Path(target_dir + filename)
     now = datetime.now() # current date and time
@@ -98,11 +113,13 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
     else:
         output_df = dataframe
 
+    filename = replace_templated_string(filename)
+
     # getting info to help make decisions
     df_row_count = len(output_df)
     print('row count: ' + str(df_row_count))
     if (df_row_count == 0):
-        print(f"dataframe for {filename} is empty. Nothing file to produce here!")
+        print(f"dataframe for {filename} is empty. No file to produce here!")
         return 0
     
     df_size_in_bytes = sys.getsizeof(output_df)
@@ -111,10 +128,19 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
 
     # if file size is not an issue, just output to csv
     if(max_file_size_mb == None):
-        if(timestamp_file == True):
-            output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
-        else:
-            output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+        # if(filename_prefix == None):
+        #     if(timestamp_file == True):
+        #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
+        #     else:
+        #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+        # else:
+        #     if(timestamp_file == True):
+        #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{filename_prefix}._{filename}.csv', header=True, chunksize=5000, index=False)
+        #     else:
+        #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
+
+        
+        output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
         
     else:
         df_row_count = len(output_df)
@@ -126,17 +152,30 @@ def save_to_delimited_file(dataframe, target_dir, filename, columns_list = None,
         print('number of rows in chunk: ' + str(number_of_rows_in_chunk))
 
         if iteration == 1:
-            if(timestamp_file == True):
-                output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
-            else:
-                output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
+            # if(filename_prefix == None):
+            #     if(timestamp_file == True):
+            #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
+            #     else:
+            #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+            # else:
+            #     if(timestamp_file == True):
+            #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{filename_prefix}._{filename}.csv', header=True, chunksize=5000, index=False)
+            #     else:
+            #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
+            output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
         else:
             for i, start in enumerate(range(0, df_row_count, number_of_rows_in_chunk)):
-                # output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{filename}_{i}.csv', chunksize=5000)
-                if(timestamp_file == True):
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{i}._{filename}.csv', header=True, chunksize=5000, index=False)
-                else:
-                    output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}.csv', header=True, chunksize=5000, index=False)
+                # if(filename_prefix == None):
+                #     if(timestamp_file == True):
+                #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}._{filename}.csv', header=True, chunksize=5000, index=False)
+                #     else:
+                #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000)
+                # else:
+                #     if(timestamp_file == True):
+                #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{filename_prefix}._{filename}.csv', header=True, chunksize=5000, index=False)
+                #     else:
+                #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
+                output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}_{i}.csv', chunksize=5000)
 
     return
 
@@ -354,6 +393,17 @@ def generate_observation_grade_extract(connection):
     
     return df
 
+def generate_observation_bmi_extract(connection):
+    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_bmi')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    return df
+
 def generate_icdo_extract(connection):
     df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_icdo')
 
@@ -423,10 +473,10 @@ if __name__ == '__main__':
     # create connection
     conn = get_db_connection(server , database )
     print('=== output 0 : patient ====')
-    save_to_delimited_file(generate_patient_extract(conn), './generated', 'navify_patient', timestamp_file=True)
+    save_to_delimited_file(generate_patient_extract(conn), './generated', '{{datestamp}}._navify_patient')
    
 
-    print('=== output 1 : pathology report ====')
+    # print('=== output 1 : pathology report ====')
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
     #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -436,10 +486,9 @@ if __name__ == '__main__':
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     
-    diagnostic_reports_df = generate_pathology_oxpos_submission(conn)
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(generate_pathology_oxpos_submission(conn), './generated', filename='{{datestamp}}_pathology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
 
-    print('=== output 2 : radiology report ====')
+    # print('=== output 2 : radiology report ====')
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
     #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
@@ -448,10 +497,10 @@ if __name__ == '__main__':
     #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
+    # save_to_delimited_file(generate_radiology_oxpos_submission(conn), './generated', filename='{{datestamp}}_radiology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
 
-    print('=== output 3 : surgical report ====')
+    # print('=== output 3 : surgical report ====')
    
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
@@ -461,10 +510,9 @@ if __name__ == '__main__':
     #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_surgical_reports(conn)])
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(generate_surgical_reports(conn), './generated', filename='{{datestamp}}_surgical._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
 
-    print('=== output 4 : MDT report ====')
+    # print('=== output 4 : MDT report ====')
    
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
@@ -474,108 +522,50 @@ if __name__ == '__main__':
     #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
-    # save_to_delimited_file(df, './generated', str(template_file).removesuffix('-template.html') ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
+    # save_to_delimited_file(generate_mdt_reports(conn), './generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
 
+    # # # print('==== output 1 to 4 : diagnostic reports in one file =====')
 
-
-    print('==== output 1 to 4 : diagnostic reports in one file =====')
-
-    # diagnostic_reports_df
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # # # # diagnostic_reports_df
+    # # # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    # # #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    # # #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    # # #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    # # #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    # # #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    # # #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
-    save_to_delimited_file(diagnostic_reports_df, './generated', 'navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # # # save_to_delimited_file(diagnostic_reports_df, './generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
 
-    print('=== output 5 : headline diagnosis ====')
+    # print('=== output 5 : headline diagnosis ====')
     
-    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-                    ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
-
-                # ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-                # ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-                # ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-                # ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-                # ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-                # ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' 
+    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    #                 ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
                 
+    # save_to_delimited_file(generate_headline_diagnosis(conn), './generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25)
 
+    # print('=== output 6 : observation grade ====')
+    # save_to_delimited_file(generate_observation_grade_extract(conn), './generated', '{{datestamp}}._navify_observation_grade')
 
-    save_to_delimited_file(generate_headline_diagnosis(conn), './generated', 'navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # print('=== output 7 : ICDO grade ====')
+    # save_to_delimited_file(generate_icdo_extract(conn), './generated', '{{datestamp}}._navify_observation_icdo')
 
-    print('=== output 6 : observation grade ====')
+    # print('=== output 8 : TNM grade ====')
+    # save_to_delimited_file(generate_tnm_extract(conn), './generated', '{{datestamp}}._navify_observation_tnm')
 
-    save_to_delimited_file(generate_observation_grade_extract(conn), './generated', 'navify_observation_grade', timestamp_file=True)
-
-    print('=== output 7 : ICDO grade ====')
-        
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(generate_icdo_extract(conn), './generated', 'navify_observation_icdo', timestamp_file=True)
-
-    print('=== output 8 : TNM grade ====')
-   
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(generate_tnm_extract(conn), './generated', 'navify_observation_tnm', timestamp_file=True)
-
-   
-
-    print('=== output 10 : condition ====')
-   
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-
-
-    save_to_delimited_file(generate_condition_extract(conn), './generated', 'navify_condition', timestamp_file=True)
+    # print('=== output 9 : condition ====')
+    # save_to_delimited_file(generate_condition_extract(conn), './generated', '{{datestamp}}._navify_condition')
       
-    print('=== output 11 : body structure ====')
-   
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # print('=== output 10 : body structure ====')
+    # save_to_delimited_file(generate_body_structure_extract(conn), './generated', '{{datestamp}}._navify_body_structure')
 
-
-    save_to_delimited_file(generate_body_structure_extract(conn), './generated', 'navify_body_structure', timestamp_file=True)
-
-    print('=== output 12 : procedure ====')
+    print('=== output 11 : procedure ====')
+    save_to_delimited_file(generate_procedure_extract(conn), './generated', '{{datestamp}}._navify_procedure')
     
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #             ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #             ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #             ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #             ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #             ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #             ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+
+    print('=== output 12 : observation bmi ====')
+    save_to_delimited_file(generate_observation_bmi_extract(conn), './generated', '{{datestamp}}._navify_exam_observation', timestamp_file=True)
 
 
-    save_to_delimited_file(generate_procedure_extract(conn), './generated', 'navify_procedure', timestamp_file=True)
     conn.close()

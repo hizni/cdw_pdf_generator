@@ -7,3 +7,4 @@ generated/*
 __pycache__/
 .vscode/
 poetry.lock
+poetry.lock
