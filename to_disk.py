@@ -4,6 +4,7 @@ import polars as pl
 import base64
 import math 
 from datetime import datetime
+import yaml
 
 import os, sys
 
@@ -12,7 +13,7 @@ def get_db_connection(server, database):
    return pyodbc.connect('Driver={ODBC Driver 18 for SQL Server}' + \
                           ';SERVER=' + server + \
                           ';DATABASE=' + database + \
-                          ';TrustServerCertificate=Yes;Trusted_Connection=Yes;' )   
+                          ';TrustServerCertificate=Yes;Trusted_Connection=Yes;MultipleActiveResultSets=True' )   
 
 def get_data_from_database(db_connection, schema_table_name):
     query = 'SELECT * FROM ' + schema_table_name
@@ -37,22 +38,22 @@ def replace_templated_string(inputString):
     return inputString
 
 
-def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None, columns_list = None, max_file_size_mb = None, delimiter = ",", timestamp_file=False):
+def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None, columns_list = None, max_file_size_mb = None, delimiter = ","):
     
     # filepath = pathlib.Path(target_dir + filename)
     now = datetime.now() # current date and time
     current_datestamp = now.strftime("%Y%m%d")
     # print(current_datestamp)
 
-    # Check whether the specified target path exists or not
-    isExist = os.path.exists(f'{target_dir}/')
-    if not isExist:
-        raise NotADirectoryError
-    else:
-        # Check whether a subdir with todays timestamp already exists or not. If not create it
-        isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
-        if not isExist:
-            os.makedirs(f'{target_dir}/{current_datestamp}')
+    # # Check whether the specified target path exists or not
+    # isExist = os.path.exists(f'{target_dir}/')
+    # if not isExist:
+    #     raise NotADirectoryError
+    # else:
+    #     # Check whether a subdir with todays timestamp already exists or not. If not create it
+    #     isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+    #     if not isExist:
+    #         os.makedirs(f'{target_dir}/{current_datestamp}')
 
     # get subset of original dataframe based on list of column names passed. 
     # if no column names are passed just process original dataframe
@@ -81,7 +82,8 @@ def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None
 
     # if file size is not an issue, just output to csv
     if(max_file_size_mb == None):
-        output_df.write_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', has_header=True, batch_size=5000)
+        # output_df.write_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', has_header=True, batch_size=5000)
+        output_df.write_csv(f'{target_dir}/{filename}.csv', has_header=True, batch_size=5000)
         
     else:
         df_row_count = len(output_df)
@@ -93,10 +95,12 @@ def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None
         print('number of rows in chunk: ' + str(number_of_rows_in_chunk))
 
         if iteration == 1:
-            output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
+            # output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
+            output_df.to_csv(f'{target_dir}/{filename}.csv', header=True, chunksize=5000, index=False)
         else:
             for i, start in enumerate(range(0, df_row_count, number_of_rows_in_chunk)):
-                output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}_{i}.csv', chunksize=5000)
+                # output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}_{i}.csv', chunksize=5000)
+                output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{i}_{filename}_{i}.csv', chunksize=5000)
 
     return
 
@@ -105,42 +109,120 @@ def generate_dataset_extract(connection, schema_table_name):
 
     return df
 
+def populate_dataset(connection, schema_table_name):
+    cursor = connection.cursor()
+    sql = 'exec data.load_data_' + schema_table_name
+    cursor.execute(sql)
+
 def read_in_data(file1, file2):
     df1 = pl.read_csv(file1, try_parse_dates=False)
+    print("first df shape")
     print(df1.shape)
     # print(df1.head(5))
     df2 = pl.read_csv(file2, try_parse_dates=False)
+    print("second df shape")
     print(df2.shape)
     # print(df2.head(5))
 
+    # concat dataframes 
     result_df = pl.concat(
         [
-            df1,
-            df2,
+            df1.with_columns(pl.col("admission_method").cast(str)),
+            df2.with_columns(pl.col("admission_method").cast(str)),
         ],
         how="vertical",
     )
 
+    print("joined df")
     print(result_df.shape)
 
-    # Reading dataset
-    dep_dup_df = result_df.unique(keep='first')
+    # Remove duplicates from concatenated. only shows rows being submitted in second file
+    print("diffed df")
+    dep_dup_df = result_df.unique(keep='none')
     print(dep_dup_df.shape)
 
-    print(dep_dup_df.head(5))
+
+    dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result'))
+    print(dep_dup_df)
+
+
+    # print(dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')))
+
+    # diff manifest 
+    new_patient_records = dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='anti').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
+    additional_records =  dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='inner').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
+    
+    new_df = pl.concat([new_patient_records, additional_records], rechunk=True)
+    print(new_df)
+    
+    return dep_dup_df, new_df
+
+    # print(dep_dup_df.head(5))
 
     # df1.join(df2, on='source_spell_id', suffix='_df2').filter(pl.any([pl.col(x)!=pl.col(f"{x}_df2") for x in df1.columns if x!='source_spell_id']))
     # df2 == df1
 
 if __name__ == '__main__':
+    # server = 'oxnetdwp04'
+    # database = 'cig_101_test'
+
+    # # create connection
+    # conn = get_db_connection(server , database )
+
+    # # print('=== output -1 : populate inpat spells dataset ====')
+    # populate_dataset(conn, 'inpat_spells')
+
+    # # print('=== output 0 : create csv for inpat spells ====')
+    # save_to_delimited_file(generate_dataset_extract(conn, 'data.inpat_spells'), './generated/inpat_spells', '{{timestamp}}._inpat_spells')
+
+    # print('=== output 1: compare dataframes ====')
+    # diff_data, manifest = read_in_data('./generated/compare/inpat_spells/202310131259._inpat_spells.csv', './generated/compare/inpat_spells/202310131528._inpat_spells.csv')
+
+    # print("=== final output ===")
+    # print("diff inpat data")
+    # print(diff_data)
+
+    # print("manifest inpat data")
+    # print(manifest)
+
+    # save_to_delimited_file( diff_data, './generated/diff', '{{datestamp}}._inpat_spells')
+    # save_to_delimited_file( manifest, './generated/diff', '{{datestamp}}._manifest_inpat_spells')
+
     server = 'oxnetdwp04'
     database = 'cig_101_test'
 
     # create connection
     conn = get_db_connection(server , database )
+    cursor = conn.cursor()
+    
 
-    # print('=== output 0 : create csv for inpat spells ====')
-    # save_to_delimited_file(generate_dataset_extract(conn, 'data.inpat_spells'), './generated/compare', '{{timestamp}}._inpat_spells')
+    with open("dp_cig_101.yaml", "r") as stream:
+        try:
+            # getting data from yaml config
+            config = yaml.safe_load(stream)
+            print(config['name'])
+            data_from = config['data_from'] 
+            data_till = config['data_till']
+            datasets = config['datasets']
+            # generating data product
+            print("Generating data product with following parameters")
+            for d in datasets:
+                print("Loading..." + d)
 
-    print('=== output 1: compare dataframes ====')
-    read_in_data('./generated/compare/20231013/202310131259._inpat_spells.csv', './generated/compare/20231013/202310131528._inpat_spells.csv')
+                # # print('=== output -1 : populate inpat spells dataset ====')
+                sql = f'exec data.load_data_{d} ?,?'
+                params = (data_from, data_till)
+                cursor.execute(sql, params)
+
+                
+                conn.commit()
+                # cursor.cancel()
+                
+                # populate_dataset(conn, d)
+                # # print('=== output 0 : save dataset for latest run ====')
+                save_to_delimited_file(generate_dataset_extract(conn, f'data.{d}'), f'./generated/{d}' , f'{{{{timestamp}}}}._{d}'  )
+
+
+
+        except yaml.YAMLError as exc:
+            print(exc)

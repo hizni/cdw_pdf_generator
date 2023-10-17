@@ -16,6 +16,7 @@ pyodbc = "4.0.34"
 pytest = "^7.4.0"
 sqlalchemy = "^2.0.21"
 polars = "^0.19.8"
+pyyaml = "^6.0.1"
 
 
 [build-system]
