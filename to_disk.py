@@ -38,22 +38,33 @@ def replace_templated_string(inputString):
     return inputString
 
 
-def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None, columns_list = None, max_file_size_mb = None, delimiter = ","):
+def save_to_delimited_file(dataframe, 
+                           target_dir, 
+                           filename, 
+                           filename_prefix=None, 
+                           columns_list = None, 
+                           max_file_size_mb = None, 
+                           delimiter = ",", 
+                           sub_dir_by_date=False):
     
     # filepath = pathlib.Path(target_dir + filename)
     now = datetime.now() # current date and time
     current_datestamp = now.strftime("%Y%m%d")
     # print(current_datestamp)
 
-    # # Check whether the specified target path exists or not
-    # isExist = os.path.exists(f'{target_dir}/')
-    # if not isExist:
-    #     raise NotADirectoryError
-    # else:
-    #     # Check whether a subdir with todays timestamp already exists or not. If not create it
-    #     isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
-    #     if not isExist:
-    #         os.makedirs(f'{target_dir}/{current_datestamp}')
+    
+    # Check whether the specified target path exists or not
+    isExist = os.path.exists(f'{target_dir}/')
+    if not isExist:
+        raise NotADirectoryError
+    else:
+        if (sub_dir_by_date == True):
+            # Check whether a subdir with todays timestamp already exists or not. If not create it
+            isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+            if not isExist:
+                os.makedirs(f'{target_dir}/{current_datestamp}')
+
+            target_dir = f'{target_dir}/{current_datestamp}'
 
     # get subset of original dataframe based on list of column names passed. 
     # if no column names are passed just process original dataframe
@@ -209,20 +220,18 @@ if __name__ == '__main__':
             for d in datasets:
                 print("Loading..." + d)
 
-                # # print('=== output -1 : populate inpat spells dataset ====')
+                # # print('=== output 0 : populate inpat spells dataset ====')
                 sql = f'exec data.load_data_{d} ?,?'
                 params = (data_from, data_till)
                 cursor.execute(sql, params)
-
-                
                 conn.commit()
                 # cursor.cancel()
-                
-                # populate_dataset(conn, d)
                 # # print('=== output 0 : save dataset for latest run ====')
-                save_to_delimited_file(generate_dataset_extract(conn, f'data.{d}'), f'./generated/{d}' , f'{{{{timestamp}}}}._{d}'  )
+                save_to_delimited_file(generate_dataset_extract(conn, f'data.{d}'), f'./generated/{d}' , f'{{{{timestamp}}}}._{d}', sub_dir_by_date=False)
 
-
+                # diff between latest run and prev export
+                
+                
 
         except yaml.YAMLError as exc:
             print(exc)

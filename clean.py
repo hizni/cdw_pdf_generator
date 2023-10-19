@@ -84,22 +84,33 @@ def replace_templated_string(inputString):
 
     return inputString
 
-def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None, columns_list = None, max_file_size_mb = None, delimiter = ",", timestamp_file=False):
+def save_to_delimited_file(dataframe, 
+                           target_dir, 
+                           filename, 
+                           filename_prefix=None, 
+                           columns_list = None, 
+                           max_file_size_mb = None, 
+                           delimiter = ",", 
+                           sub_dir_by_date=False):
     
     # filepath = pathlib.Path(target_dir + filename)
     now = datetime.now() # current date and time
     current_datestamp = now.strftime("%Y%m%d")
     # print(current_datestamp)
 
+    
     # Check whether the specified target path exists or not
     isExist = os.path.exists(f'{target_dir}/')
     if not isExist:
         raise NotADirectoryError
     else:
-        # Check whether a subdir with todays timestamp already exists or not. If not create it
-        isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
-        if not isExist:
-            os.makedirs(f'{target_dir}/{current_datestamp}')
+        if (sub_dir_by_date == True):
+            # Check whether a subdir with todays timestamp already exists or not. If not create it
+            isExist = os.path.exists(f'{target_dir}/{current_datestamp}')
+            if not isExist:
+                os.makedirs(f'{target_dir}/{current_datestamp}')
+
+            target_dir = f'{target_dir}/{current_datestamp}'
 
     # get subset of original dataframe based on list of column names passed. 
     # if no column names are passed just process original dataframe
@@ -140,7 +151,7 @@ def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None
         #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
 
         
-        output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
+        output_df.to_csv(f'{target_dir}/{filename}.csv', header=True, chunksize=5000, index=False)
         
     else:
         df_row_count = len(output_df)
@@ -162,7 +173,7 @@ def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None
             #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{filename_prefix}._{filename}.csv', header=True, chunksize=5000, index=False)
             #     else:
             #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
-            output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename}.csv', header=True, chunksize=5000, index=False)
+            output_df.to_csv(f'{target_dir}/{filename}.csv', header=True, chunksize=5000, index=False)
         else:
             for i, start in enumerate(range(0, df_row_count, number_of_rows_in_chunk)):
                 # if(filename_prefix == None):
@@ -175,7 +186,7 @@ def save_to_delimited_file(dataframe, target_dir, filename, filename_prefix=None
                 #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{current_datestamp}_{filename_prefix}._{filename}.csv', header=True, chunksize=5000, index=False)
                 #     else:
                 #         output_df.to_csv(f'{target_dir}/{current_datestamp}/{filename_prefix}_{filename}.csv', header=True, chunksize=5000)
-                output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{current_datestamp}/{i}_{filename}_{i}.csv', chunksize=5000)
+                output_df[start:start+number_of_rows_in_chunk].to_csv(f'{target_dir}/{i}_{filename}_{i}.csv', chunksize=5000)
 
     return
 
@@ -205,6 +216,25 @@ def manual_clean_df(df):
             df.at[i,'Radiology'] = manual_cleaning_regex(row['Radiology'])
          
     return df
+
+def generate_fmi_oxpos_submission(connection):
+    schema_table_name = 'oxpos_cohort_3.navify_diagnostic_report_fmi'
+
+    df = get_data_from_database(connection, 'oxpos_cohort_3.navify_diagnostic_report_fmi')
+    # df = manual_clean_df(df)
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    
+    for i, row in enumerate(df.to_dict('records')):
+        df.at[i,'AttachmentContent'] = base64.b64encode(df.at[i,'AttachmentContent']).decode()
+    #     # save_pdf(row['AttachmentContent'], target_dir='./generated/pdf/fmi/', filename=str(row['AttachmentName']))
+        
+    #     with open('/generated/pdf/fmi/' + df.at[i,'AttachmentName'], 'wb+') as file:
+    #         file.write(df.at[i,'AttachmentContent'])
+    
+    return df;
 
 def generate_pathology_oxpos_submission(connection):
     schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_report_pathology'
@@ -473,7 +503,7 @@ if __name__ == '__main__':
     # create connection
     conn = get_db_connection(server , database )
     print('=== output 0 : patient ====')
-    save_to_delimited_file(generate_patient_extract(conn), './generated', '{{datestamp}}._navify_patient')
+    save_to_delimited_file(generate_patient_extract(conn), './generated', '{{datestamp}}._navify_patient',sub_dir_by_date=True)
    
 
     # print('=== output 1 : pathology report ====')
@@ -523,7 +553,7 @@ if __name__ == '__main__':
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
-    # save_to_delimited_file(generate_mdt_reports(conn), './generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
+    # save_to_delimited_file(generate_mdt_reports(conn), './generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # # # print('==== output 1 to 4 : diagnostic reports in one file =====')
 
@@ -536,36 +566,47 @@ if __name__ == '__main__':
     # # #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
     # # #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
-    # # # save_to_delimited_file(diagnostic_reports_df, './generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
+    # # # save_to_delimited_file(diagnostic_reports_df, './generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 5 : headline diagnosis ====')
     
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
                 
-    # save_to_delimited_file(generate_headline_diagnosis(conn), './generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25)
+    # save_to_delimited_file(generate_headline_diagnosis(conn), './generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 6 : observation grade ====')
-    # save_to_delimited_file(generate_observation_grade_extract(conn), './generated', '{{datestamp}}._navify_observation_grade')
+    # save_to_delimited_file(generate_observation_grade_extract(conn), './generated', '{{datestamp}}._navify_observation_grade', sub_dir_by_date=True)
 
     # print('=== output 7 : ICDO grade ====')
-    # save_to_delimited_file(generate_icdo_extract(conn), './generated', '{{datestamp}}._navify_observation_icdo')
+    # save_to_delimited_file(generate_icdo_extract(conn), './generated', '{{datestamp}}._navify_observation_icdo', sub_dir_by_date=True)
 
     # print('=== output 8 : TNM grade ====')
-    # save_to_delimited_file(generate_tnm_extract(conn), './generated', '{{datestamp}}._navify_observation_tnm')
+    # save_to_delimited_file(generate_tnm_extract(conn), './generated', '{{datestamp}}._navify_observation_tnm', sub_dir_by_date=True)
 
     # print('=== output 9 : condition ====')
-    # save_to_delimited_file(generate_condition_extract(conn), './generated', '{{datestamp}}._navify_condition')
+    # save_to_delimited_file(generate_condition_extract(conn), './generated', '{{datestamp}}._navify_condition', sub_dir_by_date=True)
       
     # print('=== output 10 : body structure ====')
-    # save_to_delimited_file(generate_body_structure_extract(conn), './generated', '{{datestamp}}._navify_body_structure')
+    # save_to_delimited_file(generate_body_structure_extract(conn), './generated', '{{datestamp}}._navify_body_structure', sub_dir_by_date=True)
 
-    print('=== output 11 : procedure ====')
-    save_to_delimited_file(generate_procedure_extract(conn), './generated', '{{datestamp}}._navify_procedure')
+    # print('=== output 11 : procedure ====')
+    # save_to_delimited_file(generate_procedure_extract(conn), './generated', '{{datestamp}}._navify_procedure', sub_dir_by_date=True)
     
 
-    print('=== output 12 : observation bmi ====')
-    save_to_delimited_file(generate_observation_bmi_extract(conn), './generated', '{{datestamp}}._navify_exam_observation', timestamp_file=True)
+    # print('=== output 12 : observation bmi ====')
+    # save_to_delimited_file(generate_observation_bmi_extract(conn), './generated', '{{datestamp}}._navify_exam_observation', sub_dir_by_date=True)
+
+    print('=== output 13 : FMI report ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    
+    save_to_delimited_file(generate_fmi_oxpos_submission(conn), './generated', '{{datestamp}}_fmi._navify_diagnostic_report', columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
 
     conn.close()
