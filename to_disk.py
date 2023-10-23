@@ -126,20 +126,30 @@ def populate_dataset(connection, schema_table_name):
     cursor.execute(sql)
 
 def read_in_data(file1, file2):
-    df1 = pl.read_csv(file1, try_parse_dates=False)
-    print("first df shape")
-    print(df1.shape)
-    # print(df1.head(5))
-    df2 = pl.read_csv(file2, try_parse_dates=False)
-    print("second df shape")
-    print(df2.shape)
+
+    if file2 is not None:
+        df2 = pl.read_csv(file2, try_parse_dates=False)
+        print("second df shape")
+        print(df2.shape)
+
     # print(df2.head(5))
+    if file1 is not None:
+        df1 = pl.read_csv(file1, try_parse_dates=False)
+        print("first df shape")
+        print(df1.shape)
+        # print(df1.head(5))
+    else:
+        df1 = df2.clear(n=0)
+
+
 
     # concat dataframes 
     result_df = pl.concat(
         [
-            df1.with_columns(pl.col("admission_method").cast(str)),
-            df2.with_columns(pl.col("admission_method").cast(str)),
+            # df1.with_columns(pl.col("admission_method").cast(str)),
+            # df2.with_columns(pl.col("admission_method").cast(str)),
+            df1.with_columns(),
+            df2.with_columns()
         ],
         how="vertical",
     )
@@ -163,10 +173,10 @@ def read_in_data(file1, file2):
     new_patient_records = dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='anti').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
     additional_records =  dep_dup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='inner').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
     
-    new_df = pl.concat([new_patient_records, additional_records], rechunk=True)
-    print(new_df)
+    manifest_df = pl.concat([new_patient_records, additional_records], rechunk=True)
+    print(manifest_df)
     
-    return dep_dup_df, new_df
+    return dep_dup_df, manifest_df
 
     # print(dep_dup_df.head(5))
 
@@ -206,32 +216,40 @@ if __name__ == '__main__':
     conn = get_db_connection(server , database )
     cursor = conn.cursor()
     
+    # # iterating over list of datasets in yaml file to generate output to CSVs
+    # with open("dp_cig_101.yaml", "r") as stream:
+    #     try:
+    #         # getting data from yaml config
+    #         config = yaml.safe_load(stream)
+    #         print(config['name'])
+    #         data_from = config['data_from'] 
+    #         data_till = config['data_till']
+    #         datasets = config['datasets']
+    #         # generating data product
+    #         print("Generating data product with following parameters")
+    #         for d in datasets:
+    #             print("Loading..." + d)
 
-    with open("dp_cig_101.yaml", "r") as stream:
-        try:
-            # getting data from yaml config
-            config = yaml.safe_load(stream)
-            print(config['name'])
-            data_from = config['data_from'] 
-            data_till = config['data_till']
-            datasets = config['datasets']
-            # generating data product
-            print("Generating data product with following parameters")
-            for d in datasets:
-                print("Loading..." + d)
+    #             # # print('=== output 0 : populate inpat spells dataset ====')
+    #             sql = f'exec data.load_data_{d} ?,?'
+    #             params = (data_from, data_till)
+    #             cursor.execute(sql, params)
+    #             conn.commit()
+    #             # cursor.cancel()
+    #             # # print('=== output 0 : save dataset for latest run ====')
+    #             save_to_delimited_file(generate_dataset_extract(conn, f'data.{d}'), f'./generated/{d}' , f'{{{{timestamp}}}}._{d}', sub_dir_by_date=False)
+        # except yaml.YAMLError as exc:
+        #     print(exc)
 
-                # # print('=== output 0 : populate inpat spells dataset ====')
-                sql = f'exec data.load_data_{d} ?,?'
-                params = (data_from, data_till)
-                cursor.execute(sql, params)
-                conn.commit()
-                # cursor.cancel()
-                # # print('=== output 0 : save dataset for latest run ====')
-                save_to_delimited_file(generate_dataset_extract(conn, f'data.{d}'), f'./generated/{d}' , f'{{{{timestamp}}}}._{d}', sub_dir_by_date=False)
+    # comparing the current and last exported CSV to perform diff. 
+    diff_data, manifest = read_in_data(None, './generated/inpat_spells/202310231109._inpat_spells.csv')
 
-                # diff between latest run and prev export
+    print(diff_data)
+
+    print(manifest)
+    # diff_data, manifest = read_in_data('./generated/compare/inpat_spells/202310231109._inpat_spells.csv', './generated/compare/inpat_spells/202310202252._inpat_spells.csv')
+
                 
                 
 
-        except yaml.YAMLError as exc:
-            print(exc)
+
