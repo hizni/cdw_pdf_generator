@@ -12,6 +12,9 @@ def get_db_connection(server, database):
                           ';DATABASE=' + database + \
                           ';TrustServerCertificate=Yes;Trusted_Connection=Yes;MultipleActiveResultSets=True' )  
 
+def get_db_connection_string(server, database):
+    connectionString = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER='{server}';DATABASE='{database}';TrustServerCertificate=Yes;Trusted_Connection=Yes;MultipleActiveResultSets=True"
+    return connectionString
 
 def get_data_from_database(db_connection, schema_table_name):
     query = 'SELECT * FROM ' + schema_table_name
@@ -107,7 +110,7 @@ def save_to_delimited_file(dataframe,
 
     return
 
-def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol, groupOnCol, countNumInCol):
+def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol, groupOnCol):
 
     df2 = None
 
@@ -140,21 +143,13 @@ def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol,
 
     dedup_df = concat_df.unique(keep='none')
 
-    dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias(countNumInCol))
+    dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias('result'))
 
-    print(f'GroupBy: {groupByCol}')
-    print(f'GroupOn: {groupOnCol}')
-    print(f'CountNumInCol: {countNumInCol}')
-    # diff manifest 
-    # new_patient_records = dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias(f'{countNumInCol}')).join(df1, on=f'{groupOnCol}', how='anti').select([f'{groupByCol},{countNumInCol}']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
-    # additional_records =  dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias(f'{countNumInCol}')).join(df1, on=f'{groupOnCol}', how='inner').select([f'{groupByCol},{countNumInCol}']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
-    new_patient_records = dedup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='anti').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
-    additional_records =  dedup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='inner').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
+    # produce diff manifest 
+    new_patient_records = dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias('result')).join(df1, on=f'{groupByCol}', how='anti').select([f'{groupByCol}','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
+    additional_records =  dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias('result')).join(df1, on=f'{groupByCol}', how='inner').select([f'{groupByCol}','result']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
 
     manifest_df = pl.concat([new_patient_records, additional_records], rechunk=True)
 
-    print(manifest_df.head())
-
-    # return dedup_df, manifest_df
-    return dedup_df
+    return dedup_df, manifest_df
     

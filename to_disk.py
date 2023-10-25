@@ -125,6 +125,13 @@ def populate_dataset(connection, schema_table_name):
     sql = 'exec data.load_data_' + schema_table_name
     cursor.execute(sql)
 
+
+def read_in_csv_data(file1):
+    df = pl.read_csv(file1, try_parse_dates=False)
+    print("first df shape")
+    print(df.shape)
+
+
 def read_in_data(file1, file2):
 
     if file2 is not None:
@@ -242,12 +249,47 @@ if __name__ == '__main__':
         #     print(exc)
 
     # comparing the current and last exported CSV to perform diff. 
-    diff_data, manifest = read_in_data(None, './generated/inpat_spells/202310231109._inpat_spells.csv')
+    # diff_data, manifest = read_in_data(None, './generated/inpat_spells/202310231109._inpat_spells.csv')
 
-    print(diff_data)
+    # print(diff_data)
 
-    print(manifest)
+    # print(manifest)
     # diff_data, manifest = read_in_data('./generated/compare/inpat_spells/202310231109._inpat_spells.csv', './generated/compare/inpat_spells/202310202252._inpat_spells.csv')
+
+    df1 = pl.read_csv('./diff_exported/bmi_measurements/20231024143202_manifest._bmi_measurements.csv', try_parse_dates=False)
+
+    print("manifest bmi measurement")
+    print(df1.head())
+
+    df2 = pl.read_csv('./diff_exported/inpat_spells/20231023161711_manifest._inpat_spells.csv', try_parse_dates=False)
+    print("manifest inpat spells")
+    print(df2.head())
+
+    df3 = pl.read_csv('./diff_exported/emergency_investigations/20231023161750_manifest._emergency_investigations.csv', try_parse_dates=False)
+    print("manifest emergency investigations spells")
+    print(df3.head())
+
+
+    concat_df = pl.concat(
+        [
+            # df1.with_columns(pl.col("admission_method").cast(str)),
+            # df2.with_columns(pl.col("admission_method").cast(str)),
+            df1.with_columns(),
+            df2.with_columns(),
+            df3.with_columns()
+        ],
+        how="vertical",
+    )
+
+    print(concat_df.head(10))
+
+    dedup_df = concat_df.unique(keep='none')
+    print(dedup_df.head(10))
+
+    subset_df = concat_df.select(['salted_master_patient_id', 'patient', 'finding' ])
+    qq = subset_df.unique(keep='first')
+    print(qq.head(10))
+    
 
                 
                 

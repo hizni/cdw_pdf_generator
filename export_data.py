@@ -25,11 +25,11 @@ if __name__ == '__main__':
             # getting current config details
             selected_datasets = ','.join(datasets)
             current_config = 'data_from:' + str(data_from) + ';data_till:' + str(data_till) + 'datasets:' + selected_datasets
-            # todo: store config somewhere 
+            #TODO - store config somewhere.Possibly in build.record_run_details??
             print(current_config)
 
             for d in datasets:
-                print("Exporting latest dataset for..." + d)        
+                print(f'Exporting latest dataset for {d}')        
 
                 # print('=== output 2 : get latest run details ====')
                 sql = f'exec build.get_latest_run_details ?'
@@ -55,24 +55,25 @@ if __name__ == '__main__':
                 if row_count == 0:
                    raise Exception(f"Dataset {d} has not been previously populated");
                 elif row_count == 1:
-                        # row = df.get
-                        dataset_name = results[0].get('dataset')
-                        build_id = results[0].get('build_id')
-                        run_id = results[0].get('run_id')
-                        was_exported = results[0].get('was_exported')
+                    # row = df.get
+                    dataset_name = results[0].get('dataset')
+                    build_id = results[0].get('build_id')
+                    run_id = results[0].get('run_id')
+                    was_exported = results[0].get('was_exported')
 
-                        if was_exported == 0:
-                            utility.save_to_delimited_file(utility.get_data_from_database(conn, f'data.{d}'), f'./raw_exported/{d}' , f'{run_id}._{d}', sub_dir_by_date=False)
+                    #TODO - check if file exists already. could have been exported by someone else on a different machine!!!
+                    # if was_exported == 0:
+                    utility.save_to_delimited_file(utility.get_data_from_database(conn, f'data.{d}'), f'./raw_exported/{d}' , f'{run_id}._{d}', sub_dir_by_date=False)
 
-                            sql = f'exec build.update_export_for_run ?,?,?'
-                            params = (build_id, run_id, dataset_name)
-                            build_details = cursor.execute(sql, params)
-                            
-                            cursor.commit()
-                        else:
-                            print(f"Dataset {d} has been previously exported for run {run_id}")     
+                    sql = f'exec build.update_export_for_run ?,?,?'
+                    params = (build_id, run_id, dataset_name)
+                    build_details = cursor.execute(sql, params)
+                    
+                    cursor.commit()
+                    # else:
+                    #     print(f"Dataset {d} has been previously exported for run {run_id}")     
                 else:
-                    # unknown case. too many rows have been returned
+                    #unknown case. too many rows have been returned
                     raise Exception(f"Too many rows returned by build.get_latest_run_details for {d} ");
                                              
         except yaml.YAMLError as exc:
