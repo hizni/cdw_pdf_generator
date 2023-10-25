@@ -9,3 +9,6 @@ __pycache__/
 poetry.lock
 poetry.lock
 dp_cig_101.yaml
+raw_exported/*
+diff_exported/*
+oxpos_export.yaml

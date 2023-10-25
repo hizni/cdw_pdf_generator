@@ -19,7 +19,7 @@ def get_data_from_database(db_connection, schema_table_name):
 
     return df
 
-def get_latest_build_data(db_connection, dataset):
+# def get_latest_build_data(db_connection, dataset):
     
 def replace_templated_string(inputString):
     now = datetime.now() # current date and time
@@ -110,13 +110,18 @@ def save_to_delimited_file(dataframe,
 def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol, groupOnCol, countNumInCol):
 
     df2 = None
+
     if not os.path.exists(latestExtractFile):
         raise FileNotFoundError("The latest extract file was not found")
     else:
         df2 = pl.read_csv(latestExtractFile, try_parse_dates=False)
-        
-    if not os.path.exists(earlierExtractFile):
-        if df2 == None:
+
+    if earlierExtractFile is None:
+        earlierPath = ''      
+    else:
+        earlierPath = latestExtractFile  
+    if not os.path.exists(earlierPath):
+        if df2.is_empty():
             raise ValueError("No data for latest extract was found")
         else:
             df1 = df2.clear(n=0)
@@ -137,11 +142,19 @@ def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol,
 
     dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias(countNumInCol))
 
+    print(f'GroupBy: {groupByCol}')
+    print(f'GroupOn: {groupOnCol}')
+    print(f'CountNumInCol: {countNumInCol}')
     # diff manifest 
-    new_patient_records = dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias(countNumInCol)).join(df1, on=groupOnCol, how='anti').select([groupByCol,groupOnCol]).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
-    additional_records =  dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias(countNumInCol)).join(df1, on=groupOnCol, how='inner').select([groupByCol,groupOnCol]).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
+    # new_patient_records = dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias(f'{countNumInCol}')).join(df1, on=f'{groupOnCol}', how='anti').select([f'{groupByCol},{countNumInCol}']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
+    # additional_records =  dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias(f'{countNumInCol}')).join(df1, on=f'{groupOnCol}', how='inner').select([f'{groupByCol},{countNumInCol}']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
+    new_patient_records = dedup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='anti').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))
+    additional_records =  dedup_df.group_by("salted_master_patient_id").agg(pl.struct(['source_spell_id']).n_unique().alias('result')).join(df1, on="salted_master_patient_id", how='inner').select(['salted_master_patient_id','result']).with_columns (patient = pl.lit ('existing'),finding = pl.lit('new'))
 
     manifest_df = pl.concat([new_patient_records, additional_records], rechunk=True)
 
-    return dedup_df, manifest_df
+    print(manifest_df.head())
+
+    # return dedup_df, manifest_df
+    return dedup_df
     

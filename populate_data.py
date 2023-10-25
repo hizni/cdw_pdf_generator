@@ -27,12 +27,12 @@ if __name__ == '__main__':
             print(current_config)
             
             for d in datasets:
-                print("Loading..." + d)
+                print("Populating dataset..." + d)
                 # # print('=== step 1 : populate dataset ====')
-                # sql = f'exec data.load_data_{d} ?,?'
-                # params = (data_from, data_till)
-                # cursor.execute(sql, params)
-                # conn.commit()
+                sql = f'exec data.load_data_{d} ?,?'
+                params = (data_from, data_till)
+                cursor.execute(sql, params)
+                conn.commit()
 
                 # cursor.cancel()  
         except yaml.YAMLError as exc:
