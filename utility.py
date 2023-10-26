@@ -4,7 +4,7 @@ import polars as pl
 from datetime import datetime
 import os, sys
 import math
-
+import sqlalchemy  as sa
 
 def get_db_connection(server, database):
    return pyodbc.connect('Driver={ODBC Driver 18 for SQL Server}' + \
@@ -15,6 +15,17 @@ def get_db_connection(server, database):
 def get_db_connection_string(server, database):
     connectionString = f"DRIVER={{ODBC Driver 18 for SQL Server}};SERVER='{server}';DATABASE='{database}';TrustServerCertificate=Yes;Trusted_Connection=Yes;MultipleActiveResultSets=True"
     return connectionString
+
+def get_sql_alchemy_engine(server, database, driver):
+
+    url = f"mssql+pyodbc://{server}/{database}?TrustServerCertificate=yes&driver={driver}"
+    return sa.create_engine(url)
+
+def get_sql_alchemy_url(server, database, driver):
+
+    url = f"mssql+pyodbc://{server}/{database}?TrustServerCertificate=yes&driver={driver}"
+    return url
+
 
 def get_data_from_database(db_connection, schema_table_name):
     query = 'SELECT * FROM ' + schema_table_name
