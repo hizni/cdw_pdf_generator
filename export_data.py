@@ -10,7 +10,8 @@ if __name__ == '__main__':
     conn = utility.get_db_connection(server , database )
     cursor = conn.cursor()
 
-    yaml_config = './dp_cig_101.yaml'
+    # yaml_config = './dp_cig_101.yaml'
+    yaml_config = './dp_cig_101_manual.yaml'
     # yaml_config = './oxpos_export.yaml'
 
 # iterating over list of datasets in yaml file to generate output to CSVs
