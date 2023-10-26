@@ -6,12 +6,16 @@ import polars as pl
 if __name__ == '__main__':
     server = 'oxnetdwp04'
     database = 'cig_101_test'
+    driver = "ODBC+Driver+18+for+SQL+Server"
+
+    url = utility.get_sql_alchemy_url(server, database, driver)
 
     # create connection
     conn = utility.get_db_connection(server , database )
     cursor = conn.cursor()
 
-    yaml_config = './dp_cig_101_diff.yaml'
+    # yaml_config = './dp_cig_101_diff.yaml'
+    yaml_config = './dp_cig_101_manual_diff.yaml'
 
     # iterating over list of datasets in yaml file to generate output to CSVs
     with open(yaml_config, "r") as stream:
@@ -22,7 +26,7 @@ if __name__ == '__main__':
             data_till = config['data_till']
             datasets = config['datasets']
 
-            # print(datasets)
+            # building diff datasets and manifest by dataset
             # YAML produces a dictionary of dictionaries of the data held in the dataset node
             for dict_item in datasets:
                 for key in dict_item:
@@ -66,10 +70,14 @@ if __name__ == '__main__':
                         # diff_data = utility.compute_dataset_diff_data(None, latest_file, 'salted_master_patient_id', 'source_spell_id', 'result')
                         diff_data, manifest = utility.compute_dataset_diff_data(None, latest_file, group_by_col, group_on_col)
                         
-                        
                     #     # diff_data, manifest = perform_extract_diff(None, latest_file)
                         utility.save_to_delimited_file(diff_data, f'./diff_exported/{dataset_name}' , f'{run_id}_diff._{dataset_name}', sub_dir_by_date=False)
                         utility.save_to_delimited_file(manifest, f'./diff_exported/{dataset_name}' , f'{run_id}_manifest._{dataset_name}', sub_dir_by_date=False)
+
+                        engine = utility.get_sql_alchemy_engine(server, database, driver)
+                        with engine.begin() as conn:
+                            # if not diff_data.is:
+                            diff_data.write_database(table_name=f'diff.{dataset_name}',connection=url, if_exists='replace')
 
                     elif row_count == 2:
                         dataset_name = results[0].get('dataset')
@@ -98,7 +106,12 @@ if __name__ == '__main__':
                         raise Exception(f"Too many rows returned by sproc build.get_prev_successful_run_details() for {dataset_name} ");
                     
 
-                    
+            # engine = utility.get_sql_alchemy_engine(server, database, driver)
+            # with engine.begin() as conn:
+            #     for dict_item in datasets:
+            #         for key in dict_item:
+            #             dataset = key      
+            
 
         except yaml.YAMLError as exc:
             print(exc)

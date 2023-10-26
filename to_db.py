@@ -4,6 +4,8 @@ from datetime import datetime
 import base64
 import pdfkit
 import utility
+import sqlalchemy  as sa
+import os
 
 def get_db_connection(server, database):
    return pyodbc.connect('Driver={ODBC Driver 18 for SQL Server}' + \
@@ -73,34 +75,46 @@ def load_FMI_to_database(conn):
 
 if __name__ == '__main__':
     server = 'oxnetdwp04'
-    database = 'data_products__oxpos_cohort_3'
+    database = 'cig_101_test'
 
-    conn = get_db_connection(server , database )
-    cursor = conn.cursor()
-    # load_FMI_to_database(conn)
+    # conn = get_db_connection(server , database )
+    # cursor = conn.cursor()
 
-    # # check database that has been loaded into oxpos_live_patients_redacted.fmi_report_pdf 
-    # df = get_data_from_database(conn, "oxpos_live_patients_redacted.fmi_report_pdf")
-    # print(df)
+    # e = create_engine('mssql+pyodbc://' + server + ':1433/' + database + '?driver={ODBC+Driver+17+for+SQL+Server}?TrustedConnection=yes')
+    # with e.begin() as conn:
+        
+        # load_FMI_to_database(conn)
+
+        # # check database that has been loaded into oxpos_live_patients_redacted.fmi_report_pdf 
+        # df = get_data_from_database(conn, "oxpos_live_patients_redacted.fmi_report_pdf")
+        # print(df)
 
     data = pl.read_csv('./diff_exported/emergency_investigations/20231023161750_diff._emergency_investigations.csv')
+    print(data.head())    # creating column list for insertion 
 
-    print(data.head())
-    # creating column list for insertion 
-    cols = data.columns
-    print(cols)
     
     conn_str = utility.get_db_connection_string('oxnetdwp04', 'cig_101_test')
     print(conn_str)
 
+    # engine = create_engine("mssql+pyodbc://<username>:<password>@<dsnname>")
+    # # Driver={ODBC Driver 17 for SQL Server};Server=myServerAddress;Database=myDataBase;Trusted_Connection=yes;
+    # data.write_database('emergency_investigations', f'mssql+pyodbc://{server}:1433/{database}?driver={{ODBC+Driver+18+for+SQL+Server}}?TrustedConnection=yes', if_exists='replace', engine='sqlalchemy')
+    #     # data.to_pandas().to_sql('emergency_investigations', e, schema='diff', if_exists='replace', chunksize=5000, index=False)
 
-    data.write_database('diff.emergency_investigations', conn_str, if_exists='replace', engine="adbc")
+    print(sa.__version__)
+    server = "oxnetdwp04"
+    database = "cig_101_test"
+    driver = "ODBC+Driver+18+for+SQL+Server"
+    url = f"mssql+pyodbc://{server}/{database}?TrustServerCertificate=yes&driver={driver}"
+    
+    engine = sa.create_engine(url)
+    with engine.begin() as conn:
+        data.write_database(table_name='diff.emergency_investigations',connection=url, if_exists='replace')
+        # stmt = sa.sql.text("SELECT top 10 * from build.run_history")
+        # conn.execute(stmt)
+    print("Write to database successful.")
 
-    # # Insert DataFrame records one by one. 
-    # for i,row in data.iterrows():
-    #     sql = f'INSERT INTO diff.emergency_investigations ({cols}) VALUES (%s,*(len({row})-1) + %s)'
-    #     cursor.execute(sql, tuple(row)) 
-    #     # the connection is not autocommitted by default, so we must commit to save our # changes 
-    #     conn.commit()
+
+
 
 
