@@ -13,3 +13,5 @@ raw_exported/*
 diff_exported/*
 oxpos_export.yaml
 dp_cig_101_diff.yaml
+dp_cig_101_manual.yaml
+dp_cig_101_manual_diff.yaml
