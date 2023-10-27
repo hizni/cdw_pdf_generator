@@ -218,9 +218,9 @@ def manual_clean_df(df):
     return df
 
 def generate_fmi_oxpos_submission(connection):
-    schema_table_name = 'oxpos_cohort_3.navify_diagnostic_report_fmi'
+    schema_table_name = 'diff.navify_diagnostic_report_fmi'
 
-    df = get_data_from_database(connection, 'oxpos_cohort_3.navify_diagnostic_report_fmi')
+    df = get_data_from_database(connection, 'diff.navify_diagnostic_report_fmi')
     # df = manual_clean_df(df)
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
                              'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
@@ -229,7 +229,7 @@ def generate_fmi_oxpos_submission(connection):
     
     for i, row in enumerate(df.to_dict('records')):
         df.at[i,'AttachmentContent'] = base64.b64encode(df.at[i,'AttachmentContent']).decode()
-    #     # save_pdf(row['AttachmentContent'], target_dir='./generated/pdf/fmi/', filename=str(row['AttachmentName']))
+    #     # save_pdf(row['AttachmentContent'], target_dir='./final_generated/pdf/fmi/', filename=str(row['AttachmentName']))
         
     #     with open('/generated/pdf/fmi/' + df.at[i,'AttachmentName'], 'wb+') as file:
     #         file.write(df.at[i,'AttachmentContent'])
@@ -237,11 +237,11 @@ def generate_fmi_oxpos_submission(connection):
     return df;
 
 def generate_pathology_oxpos_submission(connection):
-    schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_report_pathology'
+    schema_table_name = 'diff.oxpos_diagnostic_report_pathology'
     template_dir = './templates'
     template_file = 'pathology-report-template.html'
 
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_report_pathology')
+    df = get_data_from_database(connection, 'diff.oxpos_diagnostic_report_pathology')
 
     df = manual_clean_df(df)
 
@@ -250,7 +250,7 @@ def generate_pathology_oxpos_submission(connection):
         pdf_content = create_pdf_content(row, template_dir, template_file)
 
         # # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/pathology/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./final_generated/pdf/pathology/', filename=str(row['DiagnosticReportIdentifier']))
 
         # insert PDF content into dataframe row
         df.at[i,'AttachmentName'] = str(row['DiagnosticReportIdentifier']) + '.pdf'
@@ -274,11 +274,11 @@ def generate_pathology_oxpos_submission(connection):
     return df
  
 def generate_radiology_oxpos_submission(connection):
-    schema_table_name = 'oxpos_cohort_3.oxpos_diagostic_report_radiology'
+    schema_table_name = 'diff.oxpos_diagostic_report_radiology'
     template_dir = './templates'
     template_file = 'radiology-report-template.html'
 
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_report_radiology')
+    df = get_data_from_database(connection, 'diff.oxpos_diagnostic_report_radiology')
 
     df = manual_clean_df(df)
  
@@ -292,7 +292,7 @@ def generate_radiology_oxpos_submission(connection):
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/radiology/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./final_generated/pdf/radiology/', filename=str(row['DiagnosticReportIdentifier']))
 
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
@@ -309,11 +309,11 @@ def generate_radiology_oxpos_submission(connection):
     return df
    
 def generate_surgical_reports(connection):
-    schema_table_name = 'oxpos_cohort_3.oxpos_surgical_report'
+    schema_table_name = 'diff.oxpos_surgical_report'
     template_dir = './templates'
     template_file = 'surgical-report-template.html'
 
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_surgical_report')
+    df = get_data_from_database(connection, 'diff.oxpos_surgical_report')
 
     df = manual_clean_df(df)
  
@@ -327,7 +327,7 @@ def generate_surgical_reports(connection):
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/surgical/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./final_generated/pdf/surgical/', filename=str(row['DiagnosticReportIdentifier']))
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
     # any name changes have to be reflected in templates as well
@@ -351,11 +351,11 @@ def generate_surgical_reports(connection):
     return df
 
 def generate_mdt_reports(connection):
-    schema_table_name = 'oxpos_cohort_3.oxpos_diagnostic_mdt_report'
+    schema_table_name = 'diff.oxpos_diagnostic_mdt_report'
     template_dir = './templates'
     template_file = 'mdt-report-template.html'
 
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_diagnostic_mdt_report')
+    df = get_data_from_database(connection, 'diff.oxpos_diagnostic_mdt_report')
 
     df = manual_clean_df(df)
  
@@ -369,7 +369,7 @@ def generate_mdt_reports(connection):
         df.at[i,'AttachmentContentMimeType'] = 'application/pdf'
 
         # saving PDFs to disk to check
-        # save_pdf(pdf_content, target_dir='./generated/pdf/mdt/', filename=str(row['DiagnosticReportIdentifier']))
+        # save_pdf(pdf_content, target_dir='./final_generated/pdf/mdt/', filename=str(row['DiagnosticReportIdentifier']))
 
 
     # renaming columns from extracted dataset. Should be pushed back to data product generation as will save us having to do this here.
@@ -394,7 +394,7 @@ def generate_mdt_reports(connection):
     return df
 
 def generate_headline_diagnosis(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_headline_diagnosis')
+    df = get_data_from_database(connection, 'diff.oxpos_headline_diagnosis')
 
     for i, row in enumerate(df.to_dict('records')):
         # generate PDF content
@@ -413,7 +413,7 @@ def generate_headline_diagnosis(connection):
     return df
 
 def generate_observation_grade_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_grade')
+    df = get_data_from_database(connection, 'diff.oxpos_observation_grade')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -424,7 +424,7 @@ def generate_observation_grade_extract(connection):
     return df
 
 def generate_observation_bmi_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_bmi')
+    df = get_data_from_database(connection, 'diff.oxpos_observation_bmi')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -435,7 +435,7 @@ def generate_observation_bmi_extract(connection):
     return df
 
 def generate_icdo_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_icdo')
+    df = get_data_from_database(connection, 'diff.oxpos_observation_icdo')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -446,7 +446,7 @@ def generate_icdo_extract(connection):
     return df
 
 def generate_tnm_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_observation_tnm')
+    df = get_data_from_database(connection, 'diff.oxpos_observation_tnm')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -456,7 +456,7 @@ def generate_tnm_extract(connection):
     return df
 
 def generate_patient_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_patient')
+    df = get_data_from_database(connection, 'diff.oxpos_patient')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -467,7 +467,7 @@ def generate_patient_extract(connection):
     return df
 
 def generate_condition_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_condition')
+    df = get_data_from_database(connection, 'diff.oxpos_condition')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -477,7 +477,17 @@ def generate_condition_extract(connection):
     return df
 
 def generate_body_structure_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_body_structure')
+    df = get_data_from_database(connection, 'diff.oxpos_body_structure')
+
+    # renaming cols
+    df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
+                             'DiagnosticReportIdentifierSystem': 'DiagnosticPrimaryIdentifierSystem',
+                             'DiagnosticReportStatus' : 'PrimaryReportStatus'
+                       })
+    return df
+
+def generate_appointment_extract(connection):
+    df = get_data_from_database(connection, 'diff.oxpos_appointment')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -487,7 +497,7 @@ def generate_body_structure_extract(connection):
     return df
 
 def generate_procedure_extract(connection):
-    df = get_data_from_database(connection, 'oxpos_cohort_3.oxpos_procedure')
+    df = get_data_from_database(connection, 'diff.oxpos_procedure')
 
     # renaming cols
     df = df.rename(columns={ 'DiagnosticReportIdentifier': 'DiagnosticPrimaryIdentifier',
@@ -498,13 +508,15 @@ def generate_procedure_extract(connection):
 
 if __name__ == '__main__':
     server = 'oxnetdwp04'
-    database = 'data_products__oxpos_cohort_3'
+    database = 'cig_101_test'
 
     # create connection
     conn = get_db_connection(server , database )
-    print('=== output 0 : patient ====')
-    save_to_delimited_file(generate_patient_extract(conn), './generated', '{{datestamp}}._navify_patient',sub_dir_by_date=True)
+    # print('=== output 0 : patient ====')
+    # save_to_delimited_file(generate_patient_extract(conn), './final_generated', '{{datestamp}}._navify_patient',sub_dir_by_date=True)
    
+    # print('=== output 0.5 : appointment ====')
+    # save_to_delimited_file(generate_appointment_extract(conn), './final_generated', '{{datestamp}}._navify_appointment',sub_dir_by_date=True)
 
     # print('=== output 1 : pathology report ====')
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
@@ -516,7 +528,7 @@ if __name__ == '__main__':
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     
-    # save_to_delimited_file(generate_pathology_oxpos_submission(conn), './generated', filename='{{datestamp}}_pathology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, timestamp_file=True)
+    # save_to_delimited_file(generate_pathology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_pathology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 2 : radiology report ====')
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
@@ -528,7 +540,7 @@ if __name__ == '__main__':
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
-    # save_to_delimited_file(generate_radiology_oxpos_submission(conn), './generated', filename='{{datestamp}}_radiology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
+    # save_to_delimited_file(generate_radiology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_radiology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 3 : surgical report ====')
    
@@ -540,7 +552,7 @@ if __name__ == '__main__':
     #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    # save_to_delimited_file(generate_surgical_reports(conn), './generated', filename='{{datestamp}}_surgical._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25)
+    # save_to_delimited_file(generate_surgical_reports(conn), './final_generated', filename='{{datestamp}}_surgical._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 4 : MDT report ====')
    
@@ -553,49 +565,51 @@ if __name__ == '__main__':
     #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
     # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
-    # save_to_delimited_file(generate_mdt_reports(conn), './generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    # save_to_delimited_file(generate_mdt_reports(conn), './final_generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
-    # # # print('==== output 1 to 4 : diagnostic reports in one file =====')
+    # # # # print('==== output 1 to 4 : diagnostic reports in one file =====')
 
-    # # # # diagnostic_reports_df
-    # # # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    # # #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    # # #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    # # #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    # # #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    # # #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    # # #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # # # # # diagnostic_reports_df
+    # # # # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+    # # # #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+    # # # #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+    # # # #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+    # # # #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+    # # # #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+    # # # #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
-    # # # save_to_delimited_file(diagnostic_reports_df, './generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    # # # # save_to_delimited_file(diagnostic_reports_df, './final_generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
     # print('=== output 5 : headline diagnosis ====')
     
     # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
     #                 ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
                 
-    # save_to_delimited_file(generate_headline_diagnosis(conn), './generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    # save_to_delimited_file(generate_headline_diagnosis(conn), './final_generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
+
+# === not included
     # print('=== output 6 : observation grade ====')
-    # save_to_delimited_file(generate_observation_grade_extract(conn), './generated', '{{datestamp}}._navify_observation_grade', sub_dir_by_date=True)
+    # save_to_delimited_file(generate_observation_grade_extract(conn), './final_generated', '{{datestamp}}._navify_observation_grade', sub_dir_by_date=True)
 
     # print('=== output 7 : ICDO grade ====')
-    # save_to_delimited_file(generate_icdo_extract(conn), './generated', '{{datestamp}}._navify_observation_icdo', sub_dir_by_date=True)
+    # save_to_delimited_file(generate_icdo_extract(conn), './final_generated', '{{datestamp}}._navify_observation_icdo', sub_dir_by_date=True)
 
     # print('=== output 8 : TNM grade ====')
-    # save_to_delimited_file(generate_tnm_extract(conn), './generated', '{{datestamp}}._navify_observation_tnm', sub_dir_by_date=True)
-
-    # print('=== output 9 : condition ====')
-    # save_to_delimited_file(generate_condition_extract(conn), './generated', '{{datestamp}}._navify_condition', sub_dir_by_date=True)
+    # save_to_delimited_file(generate_tnm_extract(conn), './final_generated', '{{datestamp}}._navify_observation_tnm', sub_dir_by_date=True)
+# ==================
+    print('=== output 9 : condition ====')
+    save_to_delimited_file(generate_condition_extract(conn), './final_generated', '{{datestamp}}._navify_condition', sub_dir_by_date=True)
       
-    # print('=== output 10 : body structure ====')
-    # save_to_delimited_file(generate_body_structure_extract(conn), './generated', '{{datestamp}}._navify_body_structure', sub_dir_by_date=True)
+    print('=== output 10 : body structure ====')
+    save_to_delimited_file(generate_body_structure_extract(conn), './final_generated', '{{datestamp}}._navify_body_structure', sub_dir_by_date=True)
 
-    # print('=== output 11 : procedure ====')
-    # save_to_delimited_file(generate_procedure_extract(conn), './generated', '{{datestamp}}._navify_procedure', sub_dir_by_date=True)
+    print('=== output 11 : procedure ====')
+    save_to_delimited_file(generate_procedure_extract(conn), './final_generated', '{{datestamp}}._navify_procedure', sub_dir_by_date=True)
     
 
-    # print('=== output 12 : observation bmi ====')
-    # save_to_delimited_file(generate_observation_bmi_extract(conn), './generated', '{{datestamp}}._navify_exam_observation', sub_dir_by_date=True)
+    print('=== output 12 : observation bmi ====')
+    save_to_delimited_file(generate_observation_bmi_extract(conn), './final_generated', '{{datestamp}}._navify_exam_observation', sub_dir_by_date=True)
 
     print('=== output 13 : FMI report ====')
     columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
@@ -606,7 +620,7 @@ if __name__ == '__main__':
                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
     
-    save_to_delimited_file(generate_fmi_oxpos_submission(conn), './generated', '{{datestamp}}_fmi._navify_diagnostic_report', columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    save_to_delimited_file(generate_fmi_oxpos_submission(conn), './final_generated', '{{datestamp}}_fmi._navify_diagnostic_report', columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
 
     conn.close()
