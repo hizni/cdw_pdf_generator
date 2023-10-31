@@ -222,6 +222,9 @@ if __name__ == '__main__':
                           ';DATABASE=' + database_name + \
                           ';TrustServerCertificate=Yes;Trusted_Connection=Yes;' )
     
+    #TODO - change DB connection to use SQLAlchemy - see if speed up interaction
+    #TODO - add feedback . Generating PDF can be quite slow
+    
     # create dataframe from data extracted from table
     df = get_data_from_database(conn, schema_table_name)
     additional_report_fields_cleaning(df)
