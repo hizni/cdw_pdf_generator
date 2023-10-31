@@ -142,6 +142,9 @@ def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol,
     else:
         df1 = pl.read_csv(earlierExtractFile, try_parse_dates=False)
 
+    print("Latest dataframe contains " + df2.select(pl.count()).collect() + " rows")
+    print("Earlier dataframe contains " + df1.select(pl.count()).collect() + " rows")
+
     concat_df = pl.concat(
         [
             # df1.with_columns(pl.col("admission_method").cast(str)),
@@ -153,8 +156,8 @@ def compute_dataset_diff_data(earlierExtractFile, latestExtractFile, groupByCol,
     )
 
     dedup_df = concat_df.unique(keep='none')
-
     dedup_df.group_by(groupByCol).agg(pl.struct([groupOnCol]).n_unique().alias('result'))
+    print("Dedup dataframe contains " + dedup_df.select(pl.count()).collect() + " rows")
 
     # produce diff manifest 
     new_patient_records = dedup_df.group_by(f'{groupByCol}').agg(pl.struct([f'{groupOnCol}']).n_unique().alias('result')).join(df1, on=f'{groupByCol}', how='anti').select([f'{groupByCol}','result']).with_columns (patient = pl.lit ('new'),finding = pl.lit('new'))

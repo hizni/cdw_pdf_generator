@@ -78,6 +78,7 @@ if __name__ == '__main__':
                         with engine.begin() as conn:
                             # if not diff_data.is:
                             diff_data.write_database(table_name=f'diff.{dataset_name}',connection=url, if_exists='replace')
+                            conn.commit
 
                     elif row_count == 2:
                         dataset_name = results[0].get('dataset')
@@ -97,10 +98,19 @@ if __name__ == '__main__':
                         print(f'Latest export for {dataset_name} dataset is: {latest_file}')
                         print(f'Previous export for {dataset_name} dataset is: {previous_file}')
 
+                        # computing diff
                         diff_data, manifest = utility.compute_dataset_diff_data(previous_file, latest_file, group_by_col, group_on_col)
 
+                        # saving result of exported diff
                         utility.save_to_delimited_file(diff_data, f'./diff_exported/{dataset_name}' , f'{latest_run_id}_diff._{dataset_name}', sub_dir_by_date=False)
                         utility.save_to_delimited_file(manifest, f'./diff_exported/{dataset_name}' , f'{latest_run_id}_manifest._{dataset_name}', sub_dir_by_date=False)
+
+                        # writing to diff schema. The diff schema is now used as the source for the oxpos extraction
+                        engine = utility.get_sql_alchemy_engine(server, database, driver)
+                        with engine.begin() as conn:
+                            # if not diff_data.is:
+                            diff_data.write_database(table_name=f'diff.{dataset_name}',connection=url, if_exists='replace')
+                            conn.commit
 
                     else:
                         raise Exception(f"Too many rows returned by sproc build.get_prev_successful_run_details() for {dataset_name} ");
