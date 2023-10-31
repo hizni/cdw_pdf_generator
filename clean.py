@@ -512,92 +512,74 @@ if __name__ == '__main__':
 
     # create connection
     conn = get_db_connection(server , database )
-    # print('=== output 0 : patient ====')
-    # save_to_delimited_file(generate_patient_extract(conn), './final_generated', '{{datestamp}}._navify_patient',sub_dir_by_date=True)
+    print('=== output 0 : patient ====')
+    save_to_delimited_file(generate_patient_extract(conn), './final_generated', '{{datestamp}}._navify_patient',sub_dir_by_date=True)
    
-    # print('=== output 0.5 : appointment ====')
-    # save_to_delimited_file(generate_appointment_extract(conn), './final_generated', '{{datestamp}}._navify_appointment',sub_dir_by_date=True)
+    print('=== output 0.5 : appointment ====')
+    save_to_delimited_file(generate_appointment_extract(conn), './final_generated', '{{datestamp}}._navify_appointment',sub_dir_by_date=True)
 
-    # print('=== output 1 : pathology report ====')
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    print('=== output 1 : pathology report ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    save_to_delimited_file(generate_pathology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_pathology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
-    
-    # save_to_delimited_file(generate_pathology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_pathology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    print('=== output 2 : radiology report ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    # print('=== output 2 : radiology report ====')
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
+    save_to_delimited_file(generate_radiology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_radiology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
-    # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_radiology_oxpos_submission(conn)])
-    # save_to_delimited_file(generate_radiology_oxpos_submission(conn), './final_generated', filename='{{datestamp}}_radiology._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    print('=== output 3 : surgical report ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    # print('=== output 3 : surgical report ====')
-   
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    save_to_delimited_file(generate_surgical_reports(conn), './final_generated', filename='{{datestamp}}_surgical._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
-    # save_to_delimited_file(generate_surgical_reports(conn), './final_generated', filename='{{datestamp}}_surgical._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    print('=== output 4 : MDT report ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
+                    ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
+                    ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
+                    ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
+                    ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
+                    ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
 
-    # print('=== output 4 : MDT report ====')
-   
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
+    # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
+    save_to_delimited_file(generate_mdt_reports(conn), './final_generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
-    # # diagnostic_reports_df = pd.concat([diagnostic_reports_df, generate_mdt_reports(conn)])
-    # save_to_delimited_file(generate_mdt_reports(conn), './final_generated', filename='{{datestamp}}_mdt._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
-
-    # # # # print('==== output 1 to 4 : diagnostic reports in one file =====')
-
-    # # # # # diagnostic_reports_df
-    # # # # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    # # # #                 ,'DiagnosticPrimaryIdentifier' ,'DiagnosticPrimaryIdentifierSystem','PrimaryReportStatus','DiagnosticReportCode'
-    # # # #                 ,'DiagnosticReportCodeSystem','DiagnosticReportDisplay','EffectiveDateTime','DiagnosisCategory','DiagnosisCategorySystem'
-    # # # #                 ,'DiagnosisCategoryDisplay','ProviderIdentifier','ProviderIdentifierSystem','AttachmentName','AttachmentContent'
-    # # # #                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
-    # # # #                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
-    # # # #                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-    
-    # # # # save_to_delimited_file(diagnostic_reports_df, './final_generated', '{{datestamp}}._navify_diagnostic_report' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
-
-    # print('=== output 5 : headline diagnosis ====')
-    
-    # columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
-    #                 ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
+    print('=== output 5 : headline diagnosis ====')
+    columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
+                    ,'PMHIdentifier','PMHIdentifierSystem','PMHTitle','PMHDescription']
                 
-    # save_to_delimited_file(generate_headline_diagnosis(conn), './final_generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
+    save_to_delimited_file(generate_headline_diagnosis(conn), './final_generated', '{{datestamp}}._navify_PMHcondition' ,columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
 
-# === not included
-    # print('=== output 6 : observation grade ====')
-    # save_to_delimited_file(generate_observation_grade_extract(conn), './final_generated', '{{datestamp}}._navify_observation_grade', sub_dir_by_date=True)
+# # === not included
+#     # print('=== output 6 : observation grade ====')
+#     # save_to_delimited_file(generate_observation_grade_extract(conn), './final_generated', '{{datestamp}}._navify_observation_grade', sub_dir_by_date=True)
 
-    # print('=== output 7 : ICDO grade ====')
-    # save_to_delimited_file(generate_icdo_extract(conn), './final_generated', '{{datestamp}}._navify_observation_icdo', sub_dir_by_date=True)
+#     # print('=== output 7 : ICDO grade ====')
+#     # save_to_delimited_file(generate_icdo_extract(conn), './final_generated', '{{datestamp}}._navify_observation_icdo', sub_dir_by_date=True)
 
-    # print('=== output 8 : TNM grade ====')
-    # save_to_delimited_file(generate_tnm_extract(conn), './final_generated', '{{datestamp}}._navify_observation_tnm', sub_dir_by_date=True)
-# ==================
+#     # print('=== output 8 : TNM grade ====')
+#     # save_to_delimited_file(generate_tnm_extract(conn), './final_generated', '{{datestamp}}._navify_observation_tnm', sub_dir_by_date=True)
+# # ==================
     print('=== output 9 : condition ====')
     save_to_delimited_file(generate_condition_extract(conn), './final_generated', '{{datestamp}}._navify_condition', sub_dir_by_date=True)
       
@@ -608,8 +590,8 @@ if __name__ == '__main__':
     save_to_delimited_file(generate_procedure_extract(conn), './final_generated', '{{datestamp}}._navify_procedure', sub_dir_by_date=True)
     
 
-    print('=== output 12 : observation bmi ====')
-    save_to_delimited_file(generate_observation_bmi_extract(conn), './final_generated', '{{datestamp}}._navify_exam_observation', sub_dir_by_date=True)
+    # print('=== output 12 : observation bmi ====')
+    # save_to_delimited_file(generate_observation_bmi_extract(conn), './final_generated', '{{datestamp}}._navify_exam_observation', sub_dir_by_date=True)
 
     print('=== output 13 : FMI report ====')
     columns_list=[   'SourceOrgIdentifier','SourceSystemIdentifier','PatientPrimaryIdentifier','PatientPrimaryIdentifierSystem'
@@ -619,7 +601,6 @@ if __name__ == '__main__':
                 ,'AttachmentContentMimeType','ResultIdentifier','ResultIdentifierSystem','ConditionIdentifier','ConditionIdentifierSystem'
                 ,'ProcedureIdentifier','ProcedureIdentifierSystem','DiagnosticReportCategoryText','ProviderFullName','ConclusionCode'
                 ,'ConclusionCodeSystem','ConclusionCodeDisplay','ConclusionText' ]
-    
     save_to_delimited_file(generate_fmi_oxpos_submission(conn), './final_generated', '{{datestamp}}_fmi._navify_diagnostic_report', columns_list=columns_list, max_file_size_mb=25, sub_dir_by_date=True)
 
 

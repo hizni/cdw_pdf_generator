@@ -15,7 +15,6 @@ if __name__ == '__main__':
 
     yaml_config = './dp_cig_101.yaml'
     # yaml_config = './dp_cig_101_manual.yaml'
-    # yaml_config = './oxpos_export.yaml'
 
 # iterating over list of datasets in yaml file to generate output to CSVs
     with open(yaml_config, "r") as stream:
@@ -104,7 +103,9 @@ if __name__ == '__main__':
             with engine.begin() as conn:
                 # if not diff_data.is:
                 test_join.write_database(table_name=f'diff.manifest',connection=url, if_exists='replace')
-            
+                
+                conn.commit()
+                print('finished writing commit')
 
         except yaml.YAMLError as exc:
             print(exc)
